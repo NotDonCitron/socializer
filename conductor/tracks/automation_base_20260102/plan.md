@@ -6,8 +6,8 @@
 - [x] Task: Conductor - User Manual Verification 'Umgebungs-Setup' (Protocol in workflow.md)
 
 ## Phase 2: Kern-Automatisierungs-Logik
-- [ ] Task: Basis-Klasse für Browser-Management erstellen (Tests zuerst)
-- [ ] Task: Implementierung von Stealth-Optionen und User-Agent-Rotation (Tests zuerst)
+- [x] Task: Basis-Klasse für Browser-Management erstellen (Tests zuerst)
+- [x] Task: Implementierung von Stealth-Optionen und User-Agent-Rotation (Tests zuerst) 654e112
 - [ ] Task: Conductor - User Manual Verification 'Kern-Automatisierungs-Logik' (Protocol in workflow.md)
 
 ## Phase 3: Login-Implementierung (Instagram)
