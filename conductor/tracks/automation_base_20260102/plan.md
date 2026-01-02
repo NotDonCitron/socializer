@@ -11,9 +11,9 @@
 - [x] Task: Conductor - User Manual Verification 'Kern-Automatisierungs-Logik' (Protocol in workflow.md) b9e1abc
 
 ## Phase 3: Login-Implementierung (Instagram)
-- [ ] Task: Tests für Instagram-Login-Workflow schreiben
-- [ ] Task: Instagram-Login-Logik implementieren (Persistent Context Support)
-- [ ] Task: Fehlerbehandlung für fehlgeschlagene Logins (Tests zuerst)
+- [x] Task: Tests für Instagram-Login-Workflow schreiben 00a000d
+- [x] Task: Instagram-Login-Logik implementieren (Persistent Context Support) aab21e6
+- [~] Task: Fehlerbehandlung für fehlgeschlagene Logins (Tests zuerst)
 - [ ] Task: Conductor - User Manual Verification 'Login-Implementierung' (Protocol in workflow.md)
 
 ## Phase 4: Integration und Dokumentation
