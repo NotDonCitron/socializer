@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Basis-Automatisierungs-Framework mit Playwright und Login-Tests
+## [~] Track: Basis-Automatisierungs-Framework mit Playwright und Login-Tests
 *Link: [./conductor/tracks/automation_base_20260102/](./conductor/tracks/automation_base_20260102/)*

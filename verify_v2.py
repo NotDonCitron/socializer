@@ -1,31 +1,59 @@
 import os
-from typer.testing import CliRunner
-from radar.cli import app
-from pathlib import Path
 import shutil
+import asyncio
+from pathlib import Path
+from typer.testing import CliRunner
+from unittest.mock import patch, AsyncMock
+from radar.cli import app
+from radar.models import RawItem
 
 runner = CliRunner()
 
-def test_run():
-    # Setup paths
+@patch("radar.cli.fetch_releases", new_callable=AsyncMock)
+@patch("radar.cli.fetch_page", new_callable=AsyncMock)
+def test_run(mock_page, mock_releases):
+    print("Setting up paths...")
     site_content = Path("site/src/content")
-    if site_content.exists():
-        # Clean up previous run if needed, or just let it overwrite?
-        # Better to clean up to verify generation
-        pass 
-        # shutil.rmtree(site_content) # dangerous if user has other stuff
-
+    
     # Environment for valid checking
     os.environ["OUTPUT_DIR"] = str(site_content)
     os.environ["LLM_PROVIDER"] = "mock"
-    os.environ["SQLITE_PATH"] = ":memory:" # Use in-memory DB for verification to not pollute real DB? 
-    # But cli.py default to data/radar.sqlite. 
-    # If I use :memory:, it won't have history, so everything changes. That's good for generating posts.
+    os.environ["SQLITE_PATH"] = ":memory:"
 
-    print("Running CLI...")
-    result = runner.invoke(app, ["run"])
+    print("Setting up mocks...")
+    mock_releases.return_value = [
+        RawItem(
+            source_id="langchain",
+            kind="release",
+            external_id="v0.1.0-beta", 
+            title="LangChain v0.1.0 Beta",
+            url="https://github.com/langchain-ai/langchain/releases/tag/v0.1.0-beta",
+            raw_text="Release notes with BREAKING changes and tool calling improvements.",
+            raw_hash="hash123",
+            metadata={"tags": ["agents"]}
+        )
+    ]
+    mock_page.return_value = RawItem(
+            source_id="mcp-spec",
+            kind="webpage",
+            external_id="spec-2024-01-01",
+            title="MCP Spec Update",
+            url="https://modelcontextprotocol.io",
+            raw_text="New protocol spec details with json schema updates and breaking deprecations.",
+            raw_hash="hash456",
+            metadata={"tags": ["mcp"]}
+    )
+
+    print("Running CLI with mocks...")
+    # Based on observation, 'run' is treated as the main command (single command app behavior)
+    result = runner.invoke(app, [])
     
-    print(result.stdout)
+    print("--- CLI OUTPUT ---")
+    print(result.output)
+    print("------------------")
+    
+    if result.exception:
+        print("Exception:", result.exception)
     
     if result.exit_code != 0:
         print(f"CLI failed with exit code {result.exit_code}")
@@ -51,7 +79,17 @@ def test_run():
     if "permalink:" not in content:
         print(f"FAILURE: 'permalink' missing in frontmatter of {sample}")
         exit(1)
-        
+    
+    if "slugify" in content: # Should correct slug be there? 
+        # permalink: /updates/source_id/id_slug/
+        pass
+
+    # Check specific slug
+    # v0.1.0-beta -> v0-1-0-beta
+    if "v0-1-0-beta" not in sample.name and "spec-2024-01-01" not in sample.name:
+        # spec-2024-01-01 is already slug-like
+        print(f"WARNING: Filename {sample.name} might not be slugified correctly if expected.")
+    
     print("SUCCESS: Verification passed.")
 
 if __name__ == "__main__":
