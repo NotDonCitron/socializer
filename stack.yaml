@@ -1,0 +1,66 @@
+stack_slug: agent-framework-radar
+title: "AI Agent Framework & MCP Update Radar"
+timezone: "Europe/Berlin"
+languages:
+  - en
+  - de
+
+posting:
+  generate_de_if_impact_gte: 70
+  medium_if_impact_gte: 70
+  post_if_impact_gte: 40
+
+sources:
+  - id: langgraph
+    type: github_releases
+    repo: langchain-ai/langgraph
+    tags: [agents, orchestration, graphs]
+    priority: 5
+
+  - id: langchain
+    type: github_releases
+    repo: langchain-ai/langchain
+    tags: [agents, tools, rag]
+    priority: 5
+
+  - id: llamaindex
+    type: github_releases
+    repo: run-llama/llama_index
+    tags: [agents, rag]
+    priority: 5
+
+  - id: autogen
+    type: github_releases
+    repo: microsoft/autogen
+    tags: [agents, multi-agent]
+    priority: 4
+
+  - id: crewai
+    type: github_releases
+    repo: crewAIInc/crewAI
+    tags: [agents, multi-agent]
+    priority: 4
+
+  - id: litellm
+    type: github_releases
+    repo: BerriAI/litellm
+    tags: [routing, providers]
+    priority: 4
+
+  - id: instructor
+    type: github_releases
+    repo: jxnl/instructor
+    tags: [structured-output, json]
+    priority: 3
+
+  - id: langfuse
+    type: github_releases
+    repo: langfuse/langfuse
+    tags: [observability, tracing, evals]
+    priority: 3
+
+  - id: mcp-spec
+    type: webpage_diff
+    url: "https://modelcontextprotocol.io/"
+    tags: [mcp, protocol]
+    priority: 4

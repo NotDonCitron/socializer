@@ -1,0 +1,23 @@
+---
+const allPosts = Object.values(import.meta.glob('../content/**/*.md', { eager: true }));
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>AI Agent Radar</title>
+	</head>
+	<body>
+		<h1>AI Agent Radar Updates</h1>
+        <ul>
+            {allPosts.map((post: any) => (
+                <li>
+                    <a href={post.frontmatter.url}>{post.frontmatter.title}</a> (Impact: {post.frontmatter.impact_score})
+                </li>
+            ))}
+        </ul>
+	</body>
+</html>
