@@ -32,6 +32,16 @@ class BrowserManager:
         """
         return browser.new_context(**kwargs)
 
+    def launch_persistent_context(self, user_data_dir: str, headless: bool = True, slow_mo: int = 0, **kwargs) -> BrowserContext:
+        if not self._playwright:
+             raise RuntimeError("BrowserManager must be used as a context manager")
+        return self._playwright.chromium.launch_persistent_context(
+            user_data_dir=user_data_dir,
+            headless=headless,
+            slow_mo=slow_mo,
+            **kwargs
+        )
+
     def new_page(self, context: BrowserContext, stealth: bool = False) -> Page:
         page = context.new_page()
         if stealth:
