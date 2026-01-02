@@ -1,7 +1,7 @@
 # Plan: Basis-Automatisierungs-Framework
 
 ## Phase 1: Umgebungs-Setup
-- [ ] Task: Playwright und Abhängigkeiten installieren (pip install playwright && playwright install)
+- [x] Task: Playwright und Abhängigkeiten installieren (pip install playwright && playwright install) cd0eb3b
 - [ ] Task: Basiskonfiguration für Tests (pytest-playwright) einrichten
 - [ ] Task: Conductor - User Manual Verification 'Umgebungs-Setup' (Protocol in workflow.md)
 
