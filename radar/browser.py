@@ -1,10 +1,12 @@
 from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page, Playwright
 from typing import Optional, Dict, Any
+from playwright_stealth import Stealth
 
 class BrowserManager:
     def __init__(self):
         self._playwright = None
         self._browser = None
+        self._stealth_engine = Stealth()
 
     def __enter__(self):
         self._playwright = sync_playwright().start()
@@ -30,5 +32,8 @@ class BrowserManager:
         """
         return browser.new_context(**kwargs)
 
-    def new_page(self, context: BrowserContext) -> Page:
-        return context.new_page()
+    def new_page(self, context: BrowserContext, stealth: bool = False) -> Page:
+        page = context.new_page()
+        if stealth:
+            self._stealth_engine.apply_stealth_sync(page)
+        return page
