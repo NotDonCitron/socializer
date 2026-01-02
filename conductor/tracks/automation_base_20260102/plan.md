@@ -5,10 +5,10 @@
 - [x] Task: Basiskonfiguration für Tests (pytest-playwright) einrichten 68ce98e
 - [x] Task: Conductor - User Manual Verification 'Umgebungs-Setup' (Protocol in workflow.md)
 
-## Phase 2: Kern-Automatisierungs-Logik
+## Phase 2: Kern-Automatisierungs-Logik [checkpoint: b9e1abc]
 - [x] Task: Basis-Klasse für Browser-Management erstellen (Tests zuerst)
 - [x] Task: Implementierung von Stealth-Optionen und User-Agent-Rotation (Tests zuerst) 654e112
-- [ ] Task: Conductor - User Manual Verification 'Kern-Automatisierungs-Logik' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Kern-Automatisierungs-Logik' (Protocol in workflow.md) b9e1abc
 
 ## Phase 3: Login-Implementierung (Instagram)
 - [ ] Task: Tests für Instagram-Login-Workflow schreiben
