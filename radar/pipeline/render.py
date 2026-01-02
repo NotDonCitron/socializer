@@ -2,9 +2,12 @@ from __future__ import annotations
 from pathlib import Path
 from radar.models import GeneratedPost, StackConfig
 from datetime import datetime
+from radar.pipeline.normalize import slugify
 
 def _frontmatter(post: GeneratedPost, lang: str, noindex: bool) -> str:
     tags = post.tags
+    id_slug = slugify(post.external_id)
+    permalink = f"/updates/{post.source_id}/{id_slug}/"
     fm = [
         "---",
         f'title: "{(post.title_en if lang=="en" else post.title_de) or ""}"',
@@ -14,6 +17,9 @@ def _frontmatter(post: GeneratedPost, lang: str, noindex: bool) -> str:
         f"tags: {tags}",
         f"url: {post.url}",
         f"updated_at: {datetime.utcnow().isoformat()}Z",
+        f"permalink: {permalink}",
+        f"lang: {lang}",
+        f"id_slug: {id_slug}",
     ]
     if noindex:
         fm.append("robots: noindex")
@@ -29,7 +35,8 @@ def render_posts(cfg: StackConfig, posts: list[GeneratedPost], output_dir: str =
         if "en" in p.languages:
             path = out_base / "en" / "updates" / p.source_id
             path.mkdir(parents=True, exist_ok=True)
-            file = path / f"{p.external_id}.md"
+            id_slug = slugify(p.external_id)
+            file = path / f"{id_slug}.md"
 
             body = f"{p.hook_en}\n\n{p.short_en}\n\n"
             if p.medium_en:
@@ -43,7 +50,8 @@ def render_posts(cfg: StackConfig, posts: list[GeneratedPost], output_dir: str =
         if "de" in p.languages:
             path = out_base / "de" / "updates" / p.source_id
             path.mkdir(parents=True, exist_ok=True)
-            file = path / f"{p.external_id}.md"
+            id_slug = slugify(p.external_id)
+            file = path / f"{id_slug}.md"
 
             body = f"{p.hook_de}\n\n{p.short_de}\n\n"
             if p.medium_de:

@@ -1,3 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["radar"]
+
 [project]
 name = "ai-agent-radar"
 version = "0.1.0"
