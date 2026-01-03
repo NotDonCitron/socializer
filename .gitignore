@@ -8,3 +8,4 @@ site/dist/
 *.egg-info/
 site/src/content/
 site/.astro/
+.venv/
