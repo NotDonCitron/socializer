@@ -35,9 +35,6 @@ class BrowserManager:
     def launch_persistent_context(self, user_data_dir: str, headless: bool = True, slow_mo: int = 0, **kwargs) -> BrowserContext:
         if not self._playwright:
              raise RuntimeError("BrowserManager must be used as a context manager")
-        
-        print(f"DEBUG: Launching persistent context. User Data: {user_data_dir}, Headless: {headless}, SlowMo: {slow_mo}, Kwargs: {kwargs}")
-        
         return self._playwright.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
             headless=headless,

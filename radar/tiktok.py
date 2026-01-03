@@ -75,7 +75,11 @@ class TikTokAutomator:
             # TikTok uses a hidden input or an iframe sometimes, but usually it's an input[type=file]
             try:
                 input_selector = 'input[type="file"]'
-                self.page.wait_for_selector(input_selector, timeout=20000)
+                # File input is often hidden, so we wait for it to be attached to the DOM, not necessarily visible
+                print(f"Waiting for file input ({input_selector}) to be attached...")
+                self.page.wait_for_selector(input_selector, state="attached", timeout=20000)
+                
+                print(f"Setting input files to {file_path}...")
                 self.page.set_input_files(input_selector, file_path)
             except Exception as e:
                 self.last_error = f"Could not find upload input: {e}"
@@ -147,7 +151,17 @@ class TikTokAutomator:
                 self.last_error = "Post button never became enabled (timeout)."
                 return False
 
-            self.page.click(post_btn)
+            # Handle "Joyride" / Tour overlay which often blocks clicks
+            try:
+                if self.page.locator('div[id="react-joyride-portal"]').count() > 0:
+                    print("Detected feature tour/overlay. Attempting to dismiss...")
+                    self.page.keyboard.press("Escape")
+                    time.sleep(1)
+            except:
+                pass
+
+            print(f"Clicking Post button ({post_btn}) with force=True...")
+            self.page.click(post_btn, force=True)
 
             # 6. Verify
             # Success indicator: "Your video is being uploaded" or navigation
