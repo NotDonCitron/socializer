@@ -10,7 +10,9 @@ def _sha(text: str) -> str:
 
 async def fetch_releases(source: SourceConfig, token: str) -> list[RawItem]:
     assert source.repo, "repo required"
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     url = f"{GITHUB_API}/repos/{source.repo}/releases"
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.get(url, headers=headers)

@@ -7,7 +7,7 @@ def _sha(text: str) -> str:
 
 async def fetch_page(source: SourceConfig) -> RawItem:
     assert source.url, "url required"
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         r = await client.get(str(source.url), headers={"User-Agent": "ai-agent-radar/0.1"})
         r.raise_for_status()
         html = r.text

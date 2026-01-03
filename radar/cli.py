@@ -22,6 +22,11 @@ def get_llm():
     return MockLLM()
 
 @app.command()
+def version():
+    """Print version."""
+    print("0.1.0")
+
+@app.command()
 def run(stack_path: str = "stack.yaml"):
     """Fetch sources, score, generate posts, render markdown, write weekly digest."""
     cfg = load_stack_config(stack_path)
