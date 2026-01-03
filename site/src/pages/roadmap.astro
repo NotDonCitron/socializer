@@ -1,0 +1,68 @@
+---
+import { getTasks, type Task } from '../lib/vibe';
+
+const tasks = await getTasks();
+
+// Group tasks by status
+const columns = {
+  todo: tasks.filter(t => t.status === 'todo'),
+  inprogress: tasks.filter(t => t.status === 'inprogress'),
+  done: tasks.filter(t => t.status === 'done' || t.status === 'inreview'), // Group review with done for simplicity or separate
+};
+
+const statusLabels = {
+  todo: 'To Do',
+  inprogress: 'In Progress',
+  done: 'Completed'
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Public Roadmap</title>
+    <style>
+      body { max-width: 1000px; margin: 0 auto; padding: 2rem; font-family: system-ui, sans-serif; color: #18181b; }
+      h1 { margin-bottom: 2rem; }
+      .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+      .column { background: #f4f4f5; padding: 1rem; border-radius: 8px; }
+      .column h2 { font-size: 1.1rem; margin-top: 0; margin-bottom: 1rem; color: #52525b; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; font-weight: 700; }
+      .task-card { background: white; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e4e4e7; }
+      .task-title { font-weight: 600; margin-bottom: 0.25rem; }
+      .task-desc { font-size: 0.875rem; color: #71717a; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .empty-state { color: #a1a1aa; font-style: italic; font-size: 0.875rem; text-align: center; padding: 1rem 0; }
+      nav { margin-bottom: 2rem; }
+      nav a { color: #2563eb; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <nav>
+        <a href="/">← Back to Dashboard</a>
+    </nav>
+
+    <h1>Public Roadmap</h1>
+    <p style="margin-bottom: 2rem; color: #52525b;">
+        This is a live view of our development tasks, fetched directly from our local Vibe Kanban.
+    </p>
+
+    <div class="board">
+      {Object.entries(columns).map(([status, items]) => (
+        <div class="column">
+          <h2>{statusLabels[status as keyof typeof statusLabels]} ({items.length})</h2>
+          
+          {items.length === 0 ? (
+            <div class="empty-state">No tasks</div>
+          ) : (
+            items.map((task: Task) => (
+              <div class="task-card">
+                <div class="task-title">{task.title}</div>
+                {task.description && <div class="task-desc">{task.description}</div>}
+              </div>
+            ))
+          )}
+        </div>
+      ))}
+    </div>
+  </body>
+</html>

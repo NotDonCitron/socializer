@@ -1,6 +1,9 @@
 ---
 const allPosts = Object.values(import.meta.glob('../content/**/*.md', { eager: true }));
-import { VibeKanbanWebCompanion } from 'vibe-kanban-web-companion';
+// Filter for English content only and ensure permalink exists
+const enPosts = allPosts.filter((post: any) => 
+    (post.frontmatter.lang === 'en' || post.file.includes('/en/')) 
+);
 ---
 
 <html lang="en">
@@ -10,16 +13,38 @@ import { VibeKanbanWebCompanion } from 'vibe-kanban-web-companion';
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>AI Agent Radar</title>
+        <style>
+            body { max-width: 800px; margin: 0 auto; padding: 2rem; font-family: system-ui; }
+            li { margin-bottom: 0.5rem; }
+            a { text-decoration: none; color: #2563eb; }
+            a:hover { text-decoration: underline; }
+            .meta { color: #64748b; font-size: 0.875rem; margin-left: 0.5rem; }
+        </style>
 	</head>
 	<body>
-		<h1>AI Agent Radar Updates</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>AI Agent Radar Updates</h1>
+            <a href="/kanban" style="background: #eef2ff; color: #4338ca; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; text-decoration: none; margin-left: 0.5rem;">
+                📋 Manage Tasks
+            </a>
+            <a href="/roadmap" style="background: #ecfdf5; color: #047857; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; text-decoration: none; margin-left: 0.5rem;">
+                🗺️ Public Roadmap
+            </a>
+        </div>
+
         <ul>
-            {allPosts.map((post: any) => (
+            {enPosts.map((post: any) => (
                 <li>
-                    <a href={post.frontmatter.url}>{post.frontmatter.title}</a> (Impact: {post.frontmatter.impact_score})
+                    {/* Link to the internal permalink if available, else fallback to external url, else # */}
+                    <a href={post.frontmatter.permalink || post.frontmatter.url || '#'}>
+                        {post.frontmatter.title}
+                    </a>
+                    <span class="meta">
+                        {post.frontmatter.impact_score && `(Impact: ${post.frontmatter.impact_score})`}
+                        {post.frontmatter.tags && ` [${post.frontmatter.tags.join(', ')}]`}
+                    </span>
                 </li>
             ))}
         </ul>
-        {import.meta.env.DEV && <VibeKanbanWebCompanion client:only="react" />}
 	</body>
 </html>
