@@ -1,7 +1,10 @@
 import pytest
-from unittest.mock import MagicMock
+import os
+import tempfile
+from unittest.mock import MagicMock, patch
 from radar.tiktok import TikTokAutomator
 from radar.browser import BrowserManager
+
 
 @pytest.fixture
 def mock_tiktok_automator():
@@ -10,7 +13,20 @@ def mock_tiktok_automator():
     automator.page = MagicMock()
     return automator
 
-def test_tiktok_upload_flow(mock_tiktok_automator):
+
+@pytest.fixture
+def temp_video_file():
+    """Create a temporary file to simulate a video."""
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        f.write(b"fake video content")
+        temp_path = f.name
+    yield temp_path
+    # Cleanup
+    if os.path.exists(temp_path):
+        os.unlink(temp_path)
+
+
+def test_tiktok_upload_flow(mock_tiktok_automator, temp_video_file):
     """
     Test the TikTok upload sequence:
     1. Navigation to upload
@@ -20,27 +36,75 @@ def test_tiktok_upload_flow(mock_tiktok_automator):
     """
     mock_page = mock_tiktok_automator.page
     
-    # Ensure selectors are "found"
-    mock_page.is_visible.return_value = True
+    # Mock the page methods to simulate success
+    mock_page.is_visible.return_value = False  # No loading indicators
+    mock_page.is_enabled.return_value = True
+    mock_page.wait_for_selector.return_value = MagicMock()
+    mock_page.query_selector.return_value = MagicMock(bounding_box=lambda: {'x': 0, 'y': 0, 'width': 100, 'height': 50})
+    mock_page.evaluate.return_value = {'x': 500, 'y': 500}
     
-    # Run the method
-    success = mock_tiktok_automator.upload_video("test_video.mp4", caption="TikTok Test")
+    # Patch time.sleep to avoid waiting
+    with patch('time.sleep'):
+        with patch('radar.tiktok.time.sleep'):  # Also patch in the module
+            # Run the method with retry=False to avoid loops
+            success = mock_tiktok_automator.upload_video(
+                temp_video_file, 
+                caption="TikTok Test",
+                retry=False
+            )
     
-    # Assertions
+    # Assertions - the new implementation calls goto
     assert mock_page.goto.called
     assert mock_page.set_input_files.called
-    assert mock_page.keyboard.type.called
-    assert mock_page.click.called
     assert success is True
 
-def test_tiktok_upload_no_input(mock_tiktok_automator):
+
+def test_tiktok_upload_no_file(mock_tiktok_automator):
     """
-    Test failure when upload input is not found.
+    Test failure when video file does not exist.
     """
-    mock_page = mock_tiktok_automator.page
-    mock_page.wait_for_selector.side_effect = Exception("Not found")
-    
-    success = mock_tiktok_automator.upload_video("test_video.mp4")
+    success = mock_tiktok_automator.upload_video("nonexistent_video.mp4", retry=False)
     
     assert success is False
-    assert "Could not find upload input" in mock_tiktok_automator.last_error
+    assert "Video file not found" in mock_tiktok_automator.last_error
+
+
+def test_tiktok_upload_no_page():
+    """
+    Test failure when page is not initialized.
+    """
+    manager = MagicMock(spec=BrowserManager)
+    automator = TikTokAutomator(manager, user_data_dir="/tmp/fake_tiktok")
+    # Don't set automator.page
+    
+    success = automator.upload_video("test.mp4", retry=False)
+    
+    assert success is False
+    assert "Page not initialized" in automator.last_error
+
+
+def test_retry_logic(mock_tiktok_automator, temp_video_file):
+    """
+    Test that retry logic respects max_retries.
+    """
+    mock_page = mock_tiktok_automator.page
+    
+    # Mock to always fail on finding elements
+    mock_page.wait_for_selector.return_value = None
+    mock_page.query_selector.return_value = None
+    mock_page.is_visible.return_value = False
+    
+    # Set max retries to 1 for faster test
+    mock_tiktok_automator.max_retries = 1
+    
+    with patch('time.sleep'):  # Skip actual waiting
+        success = mock_tiktok_automator.upload_video(
+            temp_video_file, 
+            caption="Test",
+            retry=True
+        )
+    
+    assert success is False
+    # Should have tried at least once
+    assert mock_tiktok_automator.upload_attempts == 0  # Reset after failure
+

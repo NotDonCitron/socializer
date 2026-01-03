@@ -10,6 +10,10 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.0.0"
+    "@astrojs/react": "^4.4.2",
+    "astro": "^5.0.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "vibe-kanban-web-companion": "^0.0.5"
   }
 }

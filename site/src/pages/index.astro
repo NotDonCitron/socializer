@@ -1,5 +1,6 @@
 ---
 const allPosts = Object.values(import.meta.glob('../content/**/*.md', { eager: true }));
+import { VibeKanbanWebCompanion } from 'vibe-kanban-web-companion';
 ---
 
 <html lang="en">
@@ -19,5 +20,6 @@ const allPosts = Object.values(import.meta.glob('../content/**/*.md', { eager: t
                 </li>
             ))}
         </ul>
+        {import.meta.env.DEV && <VibeKanbanWebCompanion client:only="react" />}
 	</body>
 </html>
