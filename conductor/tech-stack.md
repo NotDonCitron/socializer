@@ -6,8 +6,9 @@
     *   `typer`: For building the Command Line Interface.
     *   `rich`: For terminal formatting and output.
     *   `httpx`: For making HTTP requests (browser automation control).
+    *   `playwright`: For browser automation (Instagram, TikTok).
+    *   `playwright-stealth`: For reducing bot detection probability.
     *   `pydantic`: For data validation and settings management.
-    *   `playwright` (implied from context): For browser automation.
 
 ## Frontend (Documentation/Dashboard)
 *   **Framework:** Astro
