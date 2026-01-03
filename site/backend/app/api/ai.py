@@ -4,7 +4,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from copilotkit import CopilotKitRemoteEndpoint
-from copilotkit.integrations.fastapi import add_copilotkit_endpoint
+from copilotkit.integrations.fastapi import add_fastapi_endpoint
 
 load_dotenv()
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 sdk = CopilotKitRemoteEndpoint()
 
-add_copilotkit_endpoint(router, sdk, "/copilotkit")
+add_fastapi_endpoint(router, sdk, "/copilotkit")
 
 class SummaryRequest(BaseModel):
     project_name: str
