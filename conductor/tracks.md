@@ -6,3 +6,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: Basis-Automatisierungs-Framework mit Playwright und Login-Tests
 *Link: [./conductor/tracks/automation_base_20260102/](./conductor/tracks/automation_base_20260102/)*
+
+## [ ] Track: Instagram Posting Feature
+*Link: [./conductor/tracks/instagram_posting_20260103/](./conductor/tracks/instagram_posting_20260103/)*
