@@ -1,8 +1,8 @@
 # Plan: Instagram Posting Feature
 
 ## Phase 1: Core Upload Logic (Photo)
-- [ ] Task: Create reproduction script to analyze Instagram Upload DOM
-- [ ] Task: Implement `upload_photo` method in `InstagramAutomator` (Tests first)
+- [x] Task: Create reproduction script to analyze Instagram Upload DOM
+- [~] Task: Implement `upload_photo` method in `InstagramAutomator` (Tests first)
 - [ ] Task: Handle "Crop -> Filter -> Share" multi-step flow
 - [ ] Task: Conductor - User Manual Verification 'Photo Upload'
 
