@@ -10,11 +10,11 @@
 - [x] Task: Implementierung von Stealth-Optionen und User-Agent-Rotation (Tests zuerst) 654e112
 - [x] Task: Conductor - User Manual Verification 'Kern-Automatisierungs-Logik' (Protocol in workflow.md) b9e1abc
 
-## Phase 3: Login-Implementierung (Instagram)
+## Phase 3: Login-Implementierung (Instagram) [checkpoint: 30df815]
 - [x] Task: Tests für Instagram-Login-Workflow schreiben 00a000d
 - [x] Task: Instagram-Login-Logik implementieren (Persistent Context Support) aab21e6
 - [x] Task: Fehlerbehandlung für fehlgeschlagene Logins (Tests zuerst) d9bc7e0
-- [ ] Task: Conductor - User Manual Verification 'Login-Implementierung' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Login-Implementierung' (Protocol in workflow.md) 30df815
 
 ## Phase 4: Integration und Dokumentation
 - [ ] Task: Beispiel-Skript für einen einfachen Post-Check erstellen
