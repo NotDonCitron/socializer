@@ -13,7 +13,7 @@
 ## Phase 3: Login-Implementierung (Instagram)
 - [x] Task: Tests für Instagram-Login-Workflow schreiben 00a000d
 - [x] Task: Instagram-Login-Logik implementieren (Persistent Context Support) aab21e6
-- [~] Task: Fehlerbehandlung für fehlgeschlagene Logins (Tests zuerst)
+- [x] Task: Fehlerbehandlung für fehlgeschlagene Logins (Tests zuerst) d9bc7e0
 - [ ] Task: Conductor - User Manual Verification 'Login-Implementierung' (Protocol in workflow.md)
 
 ## Phase 4: Integration und Dokumentation
