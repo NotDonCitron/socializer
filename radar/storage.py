@@ -59,6 +59,28 @@ def raw_exists_with_same_hash(con: sqlite3.Connection, source_id: str, kind: str
     row = cur.fetchone()
     return bool(row and row[0] == raw_hash)
 
+def get_latest_raw_item(con: sqlite3.Connection, source_id: str, kind: str) -> RawItem | None:
+    import json
+    cur = con.execute(
+        "SELECT source_id, kind, external_id, title, url, published_at, raw_text, raw_hash, metadata_json "
+        "FROM raw_items WHERE source_id=? AND kind=? ORDER BY published_at DESC LIMIT 1",
+        (source_id, kind),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    return RawItem(
+        source_id=row[0],
+        kind=row[1],
+        external_id=row[2],
+        title=row[3],
+        url=row[4],
+        published_at=row[5],
+        raw_text=row[6],
+        raw_hash=row[7],
+        metadata=json.loads(row[8]),
+    )
+
 def upsert_post(con: sqlite3.Connection, post: GeneratedPost) -> None:
     import json
     con.execute(

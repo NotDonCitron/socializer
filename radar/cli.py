@@ -3,7 +3,7 @@ import asyncio
 import typer
 from rich import print
 from radar.config import load_stack_config
-from radar.storage import connect, upsert_raw, raw_exists_with_same_hash, upsert_post
+from radar.storage import connect, upsert_raw, raw_exists_with_same_hash, upsert_post, get_latest_raw_item
 from radar.sources.github import fetch_releases
 from radar.sources.webpage_diff import fetch_page
 from radar.pipeline.score import score_item
@@ -51,7 +51,11 @@ def run(stack_path: str = "stack.yaml"):
 
         print(f"[green]Fetched[/green] {len(raw_items)} items, [yellow]changed[/yellow] {len(changed)}")
 
-        scored = [score_item(x) for x in changed]
+        scored = []
+        for item in changed:
+            prev = get_latest_raw_item(con, item.source_id, item.kind)
+            scored.append(score_item(item, prev))
+
         posts = await generate_posts(cfg, scored, llm)
         for p in posts:
             upsert_post(con, p)

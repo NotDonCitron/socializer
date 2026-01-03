@@ -25,15 +25,26 @@ MED_KEYWORDS = [
     ("support", 10, "support"),
 ]
 
-def semver_major_bump(tag: str) -> bool:
-    # very rough: detects x.y.z where x is major; you can improve later
-    m = re.search(r"(\d+)\.(\d+)\.(\d+)", tag)
-    if not m:
-        return False
-    major = int(m.group(1))
-    return major >= 2  # not perfect; MVP heuristic
+def semver_major_bump(new_tag: str, old_tag: str | None) -> bool:
+    def get_major(tag: str | None) -> int | None:
+        if not tag:
+            return None
+        m = re.search(r"(\d+)\.", tag)
+        return int(m.group(1)) if m else None
 
-def score_item(raw: RawItem) -> ScoredItem:
+    new_major = get_major(new_tag)
+    old_major = get_major(old_tag)
+
+    if new_major is not None and old_major is not None:
+        return new_major > old_major
+    
+    # Fallback for first time seen or non-semver
+    if new_major is not None and old_major is None:
+        return new_major >= 1
+    
+    return False
+
+def score_item(raw: RawItem, prev_raw: RawItem | None = None) -> ScoredItem:
     text = (raw.raw_text or "").lower()
     score = 10
     flags: list[str] = []
@@ -48,9 +59,11 @@ def score_item(raw: RawItem) -> ScoredItem:
             if flag not in flags:
                 flags.append(flag)
 
-    if raw.kind == "release" and semver_major_bump(raw.external_id):
-        score += 45
-        flags.append("major")
+    if raw.kind == "release":
+        prev_version = prev_raw.external_id if prev_raw else None
+        if semver_major_bump(raw.external_id, prev_version):
+            score += 45
+            flags.append("major")
 
     score = max(0, min(100, score))
     tags = list(dict.fromkeys(raw.metadata.get("tags", [])))  # unique keep order
