@@ -37,3 +37,51 @@ export async function getTasks(): Promise<Task[]> {
         return [];
     }
 }
+
+export async function createTask(title: string, description: string): Promise<string | null> {
+    if (!import.meta.env.DEV) return null;
+
+    try {
+        const response = await fetch(`${API_BASE}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title,
+                description,
+                status: 'todo',
+                project_id: 'f497ce36-226d-4953-bcdd-1841a8dde46e' // Using your default project ID
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to create task: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.task_id;
+    } catch (error) {
+        console.error('Error creating Vibe Kanban task:', error);
+        return null;
+    }
+}
+
+export async function updateTask(taskId: string, updates: Partial<Task>): Promise<boolean> {
+    if (!import.meta.env.DEV) return false;
+
+    try {
+        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update task: ${response.statusText}`);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error updating Vibe Kanban task:', error);
+        return false;
+    }
+}

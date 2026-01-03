@@ -1,0 +1,183 @@
+INFO:     Will watch for changes in these directories: ['/home/kek/socializer/socializer/site/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [190187] using WatchFiles
+INFO:     Started server process [190189]
+INFO:     Waiting for application startup.
+2026-01-03 12:37:12,035 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:37:12,035 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+2026-01-03 12:37:12,035 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("users")
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("posts")
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("posts")
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("comments")
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("comments")
+2026-01-03 12:37:12,036 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:37:12,037 INFO sqlalchemy.engine.Engine 
+CREATE TABLE users (
+	id INTEGER NOT NULL, 
+	username VARCHAR NOT NULL, 
+	email VARCHAR NOT NULL, 
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	PRIMARY KEY (id)
+)
+
+
+2026-01-03 12:37:12,037 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-01-03 12:37:12,048 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_users_email ON users (email)
+2026-01-03 12:37:12,048 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-01-03 12:37:12,050 INFO sqlalchemy.engine.Engine CREATE INDEX ix_users_id ON users (id)
+2026-01-03 12:37:12,050 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-01-03 12:37:12,053 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_users_username ON users (username)
+2026-01-03 12:37:12,053 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2026-01-03 12:37:12,056 INFO sqlalchemy.engine.Engine 
+CREATE TABLE posts (
+	id INTEGER NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	title VARCHAR, 
+	content TEXT NOT NULL, 
+	source_repo VARCHAR, 
+	impact_score INTEGER, 
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id)
+)
+
+
+2026-01-03 12:37:12,056 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-01-03 12:37:12,059 INFO sqlalchemy.engine.Engine CREATE INDEX ix_posts_id ON posts (id)
+2026-01-03 12:37:12,059 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-01-03 12:37:12,062 INFO sqlalchemy.engine.Engine 
+CREATE TABLE comments (
+	id INTEGER NOT NULL, 
+	post_id INTEGER NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	text TEXT NOT NULL, 
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(post_id) REFERENCES posts (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id)
+)
+
+
+2026-01-03 12:37:12,062 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-01-03 12:37:12,065 INFO sqlalchemy.engine.Engine CREATE INDEX ix_comments_id ON comments (id)
+2026-01-03 12:37:12,065 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-01-03 12:37:12,068 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [190189]
+INFO:     Started server process [190845]
+INFO:     Waiting for application startup.
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("posts")
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("comments")
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:38:26,397 INFO sqlalchemy.engine.Engine COMMIT
+ERROR:    Traceback (most recent call last):
+  File "/home/kek/socializer/socializer/site/backend/venv/lib/python3.12/site-packages/starlette/routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kek/socializer/socializer/site/backend/venv/lib/python3.12/site-packages/fastapi/routing.py", line 153, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kek/socializer/socializer/site/backend/venv/lib/python3.12/site-packages/fastapi/routing.py", line 153, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kek/socializer/socializer/site/backend/venv/lib/python3.12/site-packages/fastapi/routing.py", line 153, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kek/socializer/socializer/site/backend/app/main.py", line 19, in lifespan
+    from .database.client import SessionLocal
+ImportError: cannot import name 'SessionLocal' from 'app.database.client' (/home/kek/socializer/socializer/site/backend/app/database/client.py)
+
+ERROR:    Application startup failed. Exiting.
+WARNING:  WatchFiles detected changes in 'app/main.py'. Reloading...
+INFO:     Started server process [191284]
+INFO:     Waiting for application startup.
+2026-01-03 12:39:03,834 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("posts")
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("comments")
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:03,835 INFO sqlalchemy.engine.Engine COMMIT
+Database connected & tables created.
+2026-01-03 12:39:03,836 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:39:03,839 INFO sqlalchemy.engine.Engine SELECT users.id, users.username, users.email, users.created_at 
+FROM users
+ LIMIT ? OFFSET ?
+2026-01-03 12:39:03,839 INFO sqlalchemy.engine.Engine [generated in 0.00010s] (1, 0)
+2026-01-03 12:39:03,840 INFO sqlalchemy.engine.Engine INSERT INTO users (username, email) VALUES (?, ?) RETURNING id, created_at
+2026-01-03 12:39:03,840 INFO sqlalchemy.engine.Engine [generated in 0.00007s] ('admin', 'admin@example.com')
+2026-01-03 12:39:03,840 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/posts.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [191284]
+INFO:     Started server process [191482]
+INFO:     Waiting for application startup.
+2026-01-03 12:39:11,548 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("posts")
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("comments")
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-01-03 12:39:11,549 INFO sqlalchemy.engine.Engine COMMIT
+Database connected & tables created.
+2026-01-03 12:39:11,550 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:39:11,553 INFO sqlalchemy.engine.Engine SELECT users.id, users.username, users.email, users.created_at 
+FROM users
+ LIMIT ? OFFSET ?
+2026-01-03 12:39:11,553 INFO sqlalchemy.engine.Engine [generated in 0.00012s] (1, 0)
+2026-01-03 12:39:11,554 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     Application startup complete.
+2026-01-03 12:41:00,537 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:41:00,538 INFO sqlalchemy.engine.Engine SELECT posts.id, posts.user_id, posts.title, posts.content, posts.source_repo, posts.impact_score, posts.created_at 
+FROM posts ORDER BY posts.created_at DESC
+ LIMIT ? OFFSET ?
+2026-01-03 12:41:00,538 INFO sqlalchemy.engine.Engine [generated in 0.00008s] (50, 0)
+INFO:     127.0.0.1:33732 - "GET /posts/ HTTP/1.1" 200 OK
+2026-01-03 12:41:00,538 INFO sqlalchemy.engine.Engine COMMIT
+2026-01-03 12:41:00,541 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:41:00,542 INFO sqlalchemy.engine.Engine SELECT posts.source_repo, sum(posts.impact_score) AS total_impact, count(posts.id) AS post_count 
+FROM posts 
+WHERE posts.source_repo IS NOT NULL GROUP BY posts.source_repo
+2026-01-03 12:41:00,542 INFO sqlalchemy.engine.Engine [generated in 0.00006s] ()
+INFO:     127.0.0.1:33732 - "GET /posts/stats/impact HTTP/1.1" 200 OK
+2026-01-03 12:41:00,542 INFO sqlalchemy.engine.Engine COMMIT
+2026-01-03 12:48:17,524 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:48:17,525 INFO sqlalchemy.engine.Engine SELECT posts.id, posts.user_id, posts.title, posts.content, posts.source_repo, posts.impact_score, posts.created_at 
+FROM posts ORDER BY posts.created_at DESC
+ LIMIT ? OFFSET ?
+2026-01-03 12:48:17,525 INFO sqlalchemy.engine.Engine [cached since 437s ago] (50, 0)
+INFO:     127.0.0.1:34992 - "GET /posts/ HTTP/1.1" 200 OK
+2026-01-03 12:48:17,525 INFO sqlalchemy.engine.Engine COMMIT
+2026-01-03 12:48:17,529 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-01-03 12:48:17,529 INFO sqlalchemy.engine.Engine SELECT posts.source_repo, sum(posts.impact_score) AS total_impact, count(posts.id) AS post_count 
+FROM posts 
+WHERE posts.source_repo IS NOT NULL GROUP BY posts.source_repo
+2026-01-03 12:48:17,529 INFO sqlalchemy.engine.Engine [cached since 437s ago] ()
+INFO:     127.0.0.1:34992 - "GET /posts/stats/impact HTTP/1.1" 200 OK
+2026-01-03 12:48:17,529 INFO sqlalchemy.engine.Engine COMMIT

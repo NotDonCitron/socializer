@@ -1,5 +1,6 @@
 ---
 import { getTasks, type Task } from '../lib/vibe';
+import CopilotWrapper from '../components/CopilotWrapper';
 
 const tasks = await getTasks();
 
@@ -7,7 +8,7 @@ const tasks = await getTasks();
 const columns = {
   todo: tasks.filter(t => t.status === 'todo'),
   inprogress: tasks.filter(t => t.status === 'inprogress'),
-  done: tasks.filter(t => t.status === 'done' || t.status === 'inreview'), // Group review with done for simplicity or separate
+  done: tasks.filter(t => t.status === 'done' || t.status === 'inreview'),
 };
 
 const statusLabels = {
@@ -37,13 +38,19 @@ const statusLabels = {
     </style>
   </head>
   <body>
+    <CopilotWrapper client:only="react" tasks={tasks}>
     <nav>
         <a href="/">← Back to Dashboard</a>
     </nav>
 
     <h1>Public Roadmap</h1>
-    <p style="margin-bottom: 2rem; color: #52525b;">
-        This is a live view of our development tasks, fetched directly from our local Vibe Kanban.
+    <p style="margin-bottom: 2rem; color: #52525b; display: flex; justify-content: space-between; align-items: center;">
+        <span>This is a live view of our development tasks, fetched directly from our local Vibe Kanban.</span>
+        {import.meta.env.DEV && (
+          <button id="scanBtn" style="background: #18181b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 500;">
+            🔍 Scan for News
+          </button>
+        )}
     </p>
 
     <div class="board">
@@ -64,5 +71,33 @@ const statusLabels = {
         </div>
       ))}
     </div>
+    </CopilotWrapper>
+
+    <script>
+      const btn = document.getElementById('scanBtn');
+      btn?.addEventListener('click', async () => {
+        const confirmScan = confirm('Start AI News Scan? This will use OpenAI tokens.');
+        if (!confirmScan) return;
+
+        btn.innerText = 'Scanning...';
+        btn.setAttribute('disabled', 'true');
+        
+        try {
+          // Calling Python backend directly for the scan process
+          const res = await fetch('http://localhost:8000/ai/scan', { method: 'POST' });
+          if (res.ok) {
+              alert('Scan trigger received! New drafts will appear in Kanban.');
+              window.location.reload();
+          } else {
+              alert('Scan failed.');
+          }
+        } catch (e) {
+          alert('Error during scan.');
+        } finally {
+          btn.innerText = '🔍 Scan for News';
+          btn.removeAttribute('disabled');
+        }
+      });
+    </script>
   </body>
 </html>
