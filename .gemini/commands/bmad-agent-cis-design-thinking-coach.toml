@@ -1,0 +1,6 @@
+description = "BMAD CIS Agent: design-thinking-coach"
+prompt = """
+Activate BMAD agent 'design-thinking-coach' from cis module.
+
+Load the agent file from @_bmad/modules/cis/agents/design-thinking-coach.agent.yaml and follow all activation instructions.
+"""

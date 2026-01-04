@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: architect"
+prompt = """
+Activate BMAD agent 'architect' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/architect.agent.yaml and follow all activation instructions.
+"""

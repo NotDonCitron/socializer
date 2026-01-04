@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: dev"
+prompt = """
+Activate BMAD agent 'dev' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/dev.agent.yaml and follow all activation instructions.
+"""

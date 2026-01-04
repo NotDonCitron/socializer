@@ -1,0 +1,6 @@
+description = "BMAD BMB Agent: agent-builder"
+prompt = """
+Activate BMAD agent 'agent-builder' from bmb module.
+
+Load the agent file from @_bmad/modules/bmb/agents/agent-builder.agent.yaml and follow all activation instructions.
+"""

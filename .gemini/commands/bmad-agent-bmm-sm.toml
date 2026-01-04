@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: sm"
+prompt = """
+Activate BMAD agent 'sm' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/sm.agent.yaml and follow all activation instructions.
+"""
