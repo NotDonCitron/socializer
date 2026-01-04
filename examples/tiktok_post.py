@@ -20,9 +20,9 @@ def main():
         automator = TikTokAutomator(manager, user_data_dir=user_data_dir)
         
         # 1. Login (relies on saved session from tiktok_check.py)
-        # We run headless=False so we can see if it works or if a wild Captcha appears
+        # We run headless=True for sandbox compatibility
         print("Checking session...")
-        if automator.login(headless=False):
+        if automator.login(headless=True):
             print("Session looks valid (or we are already on the page).")
         else:
             print("Warning: Login method returned False. You might need to log in manually.")
@@ -32,7 +32,8 @@ def main():
         
         # 2. Upload
         print(f"Attempting to upload {video_path}...")
-        if automator.upload_video(video_path, caption="Automated test upload #robot #test"):
+        # Increased timeout to 300s (5 min) for slow processing
+        if automator.upload_video(video_path, caption="Automated test upload #robot #test", timeout=300000):
             print("SUCCESS: Video upload initiated!")
         else:
             print(f"UPLOAD FAILED: {automator.last_error}")

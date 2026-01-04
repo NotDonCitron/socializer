@@ -50,6 +50,14 @@ TIKTOK_SELECTORS = {
         # Last resort: any visible primary button at bottom
         'div[class*="footer"] button[class*="primary"]',
     ],
+    "confirmation_button": [
+        'button:has-text("TikTok.com")',  # Red button in dialog "Continue to post?"
+        'button:has-text("Continue")',
+        'button:has-text("Weiter")',
+        'button[class*="confirm"]',
+        'div[class*="modal"] button[class*="primary"]',
+        'div[class*="dialog"] button[class*="primary"]',
+    ],
     "upload_complete": [
         '[data-e2e="upload-complete"]',
         '[class*="upload-success"]',
@@ -61,12 +69,44 @@ TIKTOK_SELECTORS = {
         '[class*="spinner"]',
         '[class*="progress"]',
         'svg[class*="loading"]',
+        'div:has-text("Uploading")',
+        'div:has-text("Processing")',
+    ],
+    "processing_complete": [
+        'div:has-text("Copyright check complete")',
+        'div:has-text("Run a copyright check")', # Means it's ready to run, so upload is done
+        'div[class*="success"]',
+        'div[class*="progress"] [style*="width: 100%"]',
     ],
     "tour_overlay": [
         'div[id="react-joyride-portal"]',
         '[class*="joyride"]',
         '[class*="tour"]',
         '[class*="onboarding"]',
+    ],
+    "post_success_dialog": [
+        '[class*="SuccessModal"]',
+        '[class*="SuccessContainer"]',
+        'div:has-text("Your video has been uploaded")',
+        'div:has-text("Video wurde hochgeladen")', # German
+        'div:has-text("Manage your video")',
+        'div:has-text("Manage your videos")',
+        'div:has-text("Videos verwalten")', # German
+    ],
+    "dismiss_button": [
+        'button[class*="dismiss"]',
+        'button[class*="close"]',
+        'button[aria-label="Close"]',
+        'svg[class*="close"]',
+    ],
+    "cookie_banner": [
+        'tiktok-cookie-banner',
+        'button:has-text("Allow all")',
+        'button:has-text("Accept all")',
+        'button:has-text("Alle akzeptieren")',
+        'button:has-text("Decline all")', # Sometimes safer to decline if 'Allow' fails
+        'button:has-text("Alle ablehnen")',
+        'div[class*="cookie-banner"] button[class*="primary"]',
     ],
 }
 
