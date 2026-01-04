@@ -1,4 +1,12 @@
+import os
+import subprocess
 from typing import Dict, Optional, Tuple, List
+
+# Try to import LLMClient, fallback if not available
+try:
+    from radar.llm.base import LLMClient
+except ImportError:
+    class LLMClient: pass
 
 # Default presets based on user preferences
 DEFAULT_PRESETS = {
@@ -15,8 +23,9 @@ class ContentManager:
     """
     Manages content preparation: hashtags, captions, and eventually AI generation.
     """
-    def __init__(self, presets: Optional[Dict[str, Tuple[str, str]]] = None):
+    def __init__(self, presets: Optional[Dict[str, Tuple[str, str]]] = None, llm: Optional[LLMClient] = None):
         self.presets = presets or DEFAULT_PRESETS
+        self.llm = llm
 
     def get_hashtags(self, category_keys: List[str]) -> str:
         """
@@ -67,9 +76,60 @@ class ContentManager:
             
         return f"{base_caption} {tags}"
 
-    # Future placeholder for AI
-    async def generate_smart_caption(self, video_path: str, context: str = "") -> str:
+    async def generate_smart_caption(
+        self, 
+        video_path: str, 
+        context: str = "",
+        vibe: str = "funny"
+    ) -> Dict[str, str]:
         """
-        TODO: Implement AI analysis of video/context to generate caption + tags.
+        AI analysis of video/context to generate caption + tags.
         """
-        pass
+        filename = os.path.basename(video_path)
+        
+        if not self.llm:
+            # Basic rule-based generation if no LLM
+            clean_name = filename.split('.')[0].replace('_', ' ').replace('-', ' ').title()
+            return {
+                "caption": f"{clean_name} {context}".strip(),
+                "hashtags": self.get_hashtags([vibe, "viral"])
+            }
+
+        # Use LLM to generate
+        prompt_context = f"Video: {filename}. Description: {context}. Tone: {vibe}."
+        
+        try:
+            # Reuse the general post generation interface
+            res = await self.llm.generate_post_json(
+                raw_text=prompt_context,
+                title=filename,
+                url=video_path,
+                impact_score=50,
+                flags=[vibe],
+                lang="en"
+            )
+            
+            return {
+                "caption": res.get("short", res.get("hook", f"Check out {filename}!")),
+                "hashtags": res.get("hashtags", self.get_hashtags([vibe, "viral"]))
+            }
+        except Exception as e:
+            print(f"AI Generation Error: {e}")
+            return {
+                "caption": f"Trending video: {filename}",
+                "hashtags": "#viral #automation"
+            }
+
+    def _extract_frame(self, video_path: str, timestamp: str = "00:00:01") -> Optional[str]:
+        """Extract a single frame from the video using ffmpeg."""
+        output_path = video_path + ".thumb.jpg"
+        try:
+            cmd = [
+                "ffmpeg", "-y", "-i", video_path, 
+                "-ss", timestamp, "-vframes", "1", 
+                output_path
+            ]
+            subprocess.run(cmd, check=True, capture_output=True)
+            return output_path
+        except Exception:
+            return None

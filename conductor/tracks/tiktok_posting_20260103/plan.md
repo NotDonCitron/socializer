@@ -6,6 +6,6 @@
 - [x] Task: Implement `upload_video` method (MVP)
 
 ## Phase 2: Robustness
-- [ ] Task: Add handling for common TikTok popups
-- [ ] Task: Improve success verification
-- [ ] Task: Add tests with mocks
+- [x] Task: Add handling for common TikTok popups
+- [x] Task: Improve success verification
+- [x] Task: Add tests with mocks

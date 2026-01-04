@@ -42,7 +42,16 @@ def test_tiktok_upload_flow(mock_tiktok_automator, temp_video_file):
     mock_page.wait_for_selector.return_value = MagicMock()
     mock_page.query_selector.return_value = MagicMock(bounding_box=lambda: {'x': 0, 'y': 0, 'width': 100, 'height': 50})
     mock_page.evaluate.return_value = {'x': 500, 'y': 500}
+    mock_page.url = "https://www.tiktok.com/upload"
     
+    # Mock success: first call to is_visible for loading is False, 
+    # then for success dialog return True
+    def side_effect(selector):
+        if "Success" in selector or "uploaded" in selector:
+            return True
+        return False
+    mock_page.is_visible.side_effect = side_effect
+
     # Patch time.sleep to avoid waiting
     with patch('time.sleep'):
         with patch('radar.tiktok.time.sleep'):  # Also patch in the module
@@ -107,4 +116,39 @@ def test_retry_logic(mock_tiktok_automator, temp_video_file):
     assert success is False
     # Should have tried at least once
     assert mock_tiktok_automator.upload_attempts == 0  # Reset after failure
+
+
+def test_verify_success_dialog(mock_tiktok_automator):
+    """Test success verification via dialog."""
+    mock_page = mock_tiktok_automator.page
+    mock_page.is_visible.return_value = True
+    
+    with patch('radar.tiktok.time.sleep'):
+        success = mock_tiktok_automator._verify_success(timeout=1)
+    
+    assert success is True
+
+
+def test_verify_success_redirect(mock_tiktok_automator):
+    """Test success verification via URL redirect."""
+    mock_page = mock_tiktok_automator.page
+    mock_page.is_visible.return_value = False
+    mock_page.url = "https://www.tiktok.com/@user/video/123"
+    
+    with patch('radar.tiktok.time.sleep'):
+        success = mock_tiktok_automator._verify_success(timeout=1)
+    
+    assert success is True
+
+
+def test_dismiss_overlays(mock_tiktok_automator):
+    """Test dismissing overlays."""
+    mock_page = mock_tiktok_automator.page
+    mock_page.is_visible.return_value = True
+    mock_page.query_selector.return_value = MagicMock()
+    
+    mock_tiktok_automator._dismiss_overlays()
+    
+    # Should press Escape or click dismiss
+    assert mock_page.keyboard.press.called or mock_page.click.called
 

@@ -120,7 +120,24 @@ INSTAGRAM_SELECTORS = {
         'svg[aria-label="New post"]',
         'svg[aria-label="Create"]',
         'svg[aria-label="Neuer Beitrag"]',  # German
+        'svg[aria-label="Erstellen"]',  # German
+        'svg[aria-label*="post" i]',
+        'svg[aria-label*="create" i]',
         '[data-testid="new-post-button"]',
+        'div[role="button"]:has-text("Create")',
+        'div[role="button"]:has-text("New post")',
+        'div[role="button"]:has-text("Erstellen")',
+        'div[role="button"]:has-text("Neuer Beitrag")',
+        'div[role="link"]:has-text("Create")',
+        'div[role="link"]:has-text("New post")',
+        'div[role="link"]:has-text("Erstellen")',
+        'div[role="link"]:has-text("Neuer Beitrag")',
+        'a[role="link"]:has-text("Create")',
+        'a[role="link"]:has-text("Erstellen")',
+        'span:has-text("Create")',
+        'span:has-text("New post")',
+        'span:has-text("Erstellen")',
+        'span:has-text("Neuer Beitrag")',
     ],
     "next_button": [
         'button:has-text("Next")',
@@ -137,6 +154,14 @@ INSTAGRAM_SELECTORS = {
         'button:has-text("Share")',
         'button:has-text("Post")',
         'button:has-text("Teilen")',
+    ],
+    "success_indicator": [
+        'text="Your reel has been shared"',
+        'text="Dein Reel wurde geteilt"',
+        'text="Your post has been shared"',
+        'text="Dein Beitrag wurde geteilt"',
+        'h2:has-text("shared")',
+        'svg[aria-label="Animated checkmark"]'
     ],
 }
 

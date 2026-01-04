@@ -10,5 +10,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 ## [x] Track: Instagram Posting Feature
 *Link: [./conductor/tracks/instagram_posting_20260103/](./conductor/tracks/instagram_posting_20260103/)*
 
-## [ ] Track: TikTok Posting Feature
+## [x] Track: TikTok Posting Feature
 *Link: [./conductor/tracks/tiktok_posting_20260103/](./conductor/tracks/tiktok_posting_20260103/)*
+
+## [ ] Track: API Refactor (Logic Integration)
+*Refactor example scripts into reusable modules and integrate with Socializer API.*

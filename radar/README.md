@@ -27,7 +27,9 @@ with BrowserManager() as manager:
 
 ## Instagram Automation (`radar/instagram.py`)
 
-The `InstagramAutomator` handles specific workflows for Instagram.
+The `InstagramAutomator` handles specific workflows for Instagram. 
+
+**Note:** For details on how we handle popups, blocking tabs, and robust upload flows, see [INSTAGRAM_HARDENING.md](INSTAGRAM_HARDENING.md).
 
 ### Usage
 

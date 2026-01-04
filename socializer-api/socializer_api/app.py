@@ -7,14 +7,14 @@ import json
 import os
 from typing import Any, List, Optional
 
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel, Field
 
 from . import db
 from .scheduler.schedule import schedule_approved_content
 from .settings import get_settings
-
-app = FastAPI(title="Socializer Backend", version="0.1.0")
 
 
 def require_auth(authorization: Optional[str] = Header(None)) -> None:
@@ -32,6 +32,12 @@ def _ensure_db() -> str:
     path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     db.init_db(path)
     return path
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _ensure_db()
+    yield
 
 
 class ContentPack(BaseModel):
@@ -97,9 +103,7 @@ class ScheduleResponse(BaseModel):
     scheduled_for_utc: str
 
 
-@app.on_event("startup")
-def _init() -> None:
-    _ensure_db()
+app = FastAPI(title="Socializer Backend", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/content-packs", response_model=List[ContentPack])
@@ -182,11 +186,11 @@ def list_metrics(job_id: str, db_path: Optional[str] = None) -> List[dict]:
     return [dict(r) for r in rows]
 
 
-def _calc_reward(job_id: str, window: str, views: int, saves: int, shares: int) -> float:
+def _calc_reward(job_id: str, window: str, views: int, saves: int, shares: int, db_path: Optional[str] = None) -> float:
     if window == "60m":
         return float(views)
     if window == "24h":
-        existing = [m for m in list_metrics(job_id) if m["window"] == "60m"]
+        existing = [m for m in list_metrics(job_id, db_path=db_path) if m["window"] == "60m"]
         if existing:
             views_60m = existing[0]["views"]
             return float(views_60m + 3 * saves + 5 * shares)
@@ -200,8 +204,9 @@ def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_
     job = db.get_job(job_id, db_path=path)
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
-    reward = _calc_reward(job_id, payload.window, payload.views, payload.saves, payload.shares)
-    metric_id = db.record_metrics(
+
+    reward = _calc_reward(job_id, payload.window, payload.views, payload.saves, payload.shares, db_path=path)
+    metric_id, inserted = db.record_metrics(
         job_id=job_id,
         window=payload.window,
         views=payload.views,
@@ -212,6 +217,15 @@ def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_
         reward=reward,
         db_path=path,
     )
+    
+    if not inserted:
+        # We still return the reward, but it's the one from the existing record if we want to be fully accurate.
+        # But for simplicity, we'll just say already_exists.
+        # Let's fetch the existing reward if we want to be nice.
+        existing = [m for m in list_metrics(job_id, db_path=path) if m["id"] == metric_id]
+        existing_reward = existing[0]["reward"] if existing else reward
+        return {"id": metric_id, "reward": existing_reward, "status": "already_exists"}
+
     if job.get("slot_utc"):
         db.update_slot_stats(job["platform"], job["slot_utc"], reward, db_path=path)
     return {"id": metric_id, "reward": reward}

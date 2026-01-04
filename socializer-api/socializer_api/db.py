@@ -23,7 +23,7 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Create a SQLite connection with reliability-focused pragmas."""
     db_file = Path(db_path or get_settings().db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_file)
+    conn = sqlite3.connect(db_file, timeout=5.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
@@ -85,6 +85,16 @@ def init_db(db_path: Optional[str] = None) -> None:
             last_error TEXT,
             created_at TEXT
         );
+        -- Only one ACTIVE job per (content_pack_id, platform).
+        -- Partial unique index = CREATE UNIQUE INDEX ... WHERE ...
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_post_jobs_active_pack_platform
+        ON post_jobs(content_pack_id, platform)
+        WHERE status IN ('queued','running');
+
+        -- Helpful for list_jobs ORDER BY scheduled_for_utc
+        CREATE INDEX IF NOT EXISTS idx_post_jobs_platform_status_sched
+        ON post_jobs(platform, status, scheduled_for_utc);
+
         CREATE TABLE IF NOT EXISTS run_artifacts (
             id TEXT PRIMARY KEY,
             post_job_id TEXT REFERENCES post_jobs(id),
@@ -107,6 +117,22 @@ def init_db(db_path: Optional[str] = None) -> None:
             saves INTEGER,
             reward REAL
         );
+        -- Dedupe metrics before creating unique index (keep latest collected_at, then highest rowid)
+        DELETE FROM metrics
+        WHERE rowid NOT IN (
+            SELECT MAX(m.rowid)
+            FROM metrics m
+            JOIN (
+                SELECT post_job_id, window, MAX(collected_at) as max_collected_at
+                FROM metrics
+                GROUP BY post_job_id, window
+            ) k
+            ON m.post_job_id = k.post_job_id
+            AND m.window = k.window
+            AND m.collected_at = k.max_collected_at
+            GROUP BY m.post_job_id, m.window
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_metrics_job_window ON metrics(post_job_id, window);
         CREATE TABLE IF NOT EXISTS schedule_policy (
             id TEXT PRIMARY KEY,
             bootstrap_weeks INTEGER DEFAULT 2,
@@ -285,13 +311,13 @@ def record_metrics(
     saves: int,
     reward: float,
     db_path: Optional[str] = None,
-) -> str:
+) -> tuple[str, bool]:
     conn = get_connection(db_path)
     cur = conn.cursor()
     metrics_id = str(uuid.uuid4())
     cur.execute(
         """
-        INSERT INTO metrics (id, post_job_id, collected_at, window, views, likes, comments, shares, saves, reward)
+        INSERT OR IGNORE INTO metrics (id, post_job_id, collected_at, window, views, likes, comments, shares, saves, reward)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -307,9 +333,18 @@ def record_metrics(
             reward,
         ),
     )
+    inserted = cur.rowcount > 0
     conn.commit()
+    
+    if not inserted:
+        # Fetch the existing ID
+        cur.execute("SELECT id FROM metrics WHERE post_job_id=? AND window=?", (job_id, window))
+        row = cur.fetchone()
+        if row:
+            metrics_id = row["id"]
+            
     conn.close()
-    return metrics_id
+    return metrics_id, inserted
 
 
 def insert_content_pack(
@@ -403,7 +438,10 @@ def list_approved_packs_without_jobs(platform: str, limit: int = 10, db_path: Op
         """
         SELECT cp.* FROM content_packs cp
         WHERE cp.status='approved'
-        AND cp.id NOT IN (SELECT content_pack_id FROM post_jobs WHERE platform=?)
+        AND cp.id NOT IN (
+            SELECT content_pack_id FROM post_jobs
+            WHERE platform=? AND status IN ('queued','running')
+        )
         ORDER BY cp.created_at ASC
         LIMIT ?
         """,
