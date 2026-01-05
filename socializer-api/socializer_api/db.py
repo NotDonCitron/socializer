@@ -138,8 +138,8 @@ def init_db(db_path: Optional[str] = None) -> None:
     cur.execute(
         """
         DELETE FROM metrics
-        WHERE rowid NOT IN (
-          SELECT MIN(rowid)
+        WHERE id NOT IN (
+          SELECT MIN(m.id)
           FROM metrics m
           JOIN (
             SELECT post_job_id, window, MAX(collected_at) AS max_collected
@@ -613,4 +613,3 @@ def update_slot_stats(platform: str, slot_utc: str, reward: float, db_path: Opti
     )
     conn.commit()
     conn.close()
-

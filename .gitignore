@@ -1,0 +1,97 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.opencode/
+.gemini/commands/loop.toml.backup
+.claude/
+
+# Databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# Sessions & Cookies
+*_session/
+ig_session/
+tiktok_session/
+
+# Logs
+*.log
+api*.log
+debug*.log
+
+# Media & Content
+export/
+content/
+debug_shots/
+
+# Documentation (generated/temporary)
+*_TEST_*.md
+*_RESULTS.md
+*_STATUS.md
+*_GUIDE.md
+*_FIX.md
+PROJECT_STATUS.md
+PRODUCTION_TEST_RESULTS.md
+FIREFOX_COOKIES_RESULT.md
+FULL_TEST_STATUS.md
+TESTING_GUIDE.md
+TEST_RESULTS.md
+TIMEZONE_FIX.md
+
+# Project files
+project_knowledge/
+_newsnow/
+history
+historygemini
+
+# Scripts (temporary)
+import_firefox_cookies.py
+manual_login.py
+test_*.py
+
+# Office documents
+*.docx
+*.pdf
+*.pptx
+
+# Videos
+*.mp4
+*.avi
+*.mov
+*.mp3
+
+# Backups
+*.backup
