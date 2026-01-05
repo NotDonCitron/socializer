@@ -22,8 +22,9 @@ A comprehensive Python-based automation framework for TikTok and Instagram using
 ## Installation
 
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install main package
 pip install -e socializer/
@@ -33,6 +34,10 @@ pip install -e socializer-api/
 
 # Install Playwright browsers
 playwright install chromium
+
+# For development: Install pre-commit hooks
+pip install pre-commit
+pre-commit install
 
 # Alternative: For Instagram stealth mode only
 pip install undetected-chromedriver selenium
@@ -151,5 +156,15 @@ For more detailed information:
 - `selenium`: Web browser automation
 
 ## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](.github/CONTRIBUTING.md) for details on:
+- Code style and formatting
+- Development setup with pre-commit hooks
+- Testing requirements
+- Pull request process
 
 Use responsibly. This tool is for educational purposes and personal automation only.
