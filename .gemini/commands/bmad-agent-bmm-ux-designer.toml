@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: ux-designer"
+prompt = """
+Activate BMAD agent 'ux-designer' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/ux-designer.agent.yaml and follow all activation instructions.
+"""

@@ -1,0 +1,6 @@
+description = "BMAD CIS Agent: presentation-master"
+prompt = """
+Activate BMAD agent 'presentation-master' from cis module.
+
+Load the agent file from @_bmad/modules/cis/agents/presentation-master.agent.yaml and follow all activation instructions.
+"""

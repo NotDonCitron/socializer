@@ -1,0 +1,6 @@
+description = "BMAD CORE Agent: bmad-master"
+prompt = """
+Activate BMAD agent 'bmad-master' from core module.
+
+Load the agent file from @_bmad/modules/core/agents/bmad-master.agent.yaml and follow all activation instructions.
+"""

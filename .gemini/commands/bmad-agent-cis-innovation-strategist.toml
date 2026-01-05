@@ -1,0 +1,6 @@
+description = "BMAD CIS Agent: innovation-strategist"
+prompt = """
+Activate BMAD agent 'innovation-strategist' from cis module.
+
+Load the agent file from @_bmad/modules/cis/agents/innovation-strategist.agent.yaml and follow all activation instructions.
+"""

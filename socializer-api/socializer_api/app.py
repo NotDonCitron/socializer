@@ -3,11 +3,8 @@ FastAPI application exposing content pack review, jobs, artifacts, metrics, and 
 """
 from __future__ import annotations
 
-import json
 import os
 from typing import Any, List, Optional
-
-from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel, Field
@@ -15,6 +12,8 @@ from pydantic import BaseModel, Field
 from . import db
 from .scheduler.schedule import schedule_approved_content
 from .settings import get_settings
+
+app = FastAPI(title="Socializer Backend", version="0.1.0")
 
 
 def require_auth(authorization: Optional[str] = Header(None)) -> None:
@@ -28,16 +27,10 @@ def require_auth(authorization: Optional[str] = Header(None)) -> None:
         raise HTTPException(status_code=403, detail="Invalid token")
 
 
-def _ensure_db() -> str:
-    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
+def _ensure_db() -> None:
+    """Ensure tables exist for the active database path."""
+    path = get_settings().db_path or os.getenv("SOCIALIZER_DB", "socializer.sqlite")
     db.init_db(path)
-    return path
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    _ensure_db()
-    yield
 
 
 class ContentPack(BaseModel):
@@ -103,7 +96,9 @@ class ScheduleResponse(BaseModel):
     scheduled_for_utc: str
 
 
-app = FastAPI(title="Socializer Backend", version="0.1.0", lifespan=lifespan)
+@app.on_event("startup")
+def _init() -> None:
+    db.init_db()
 
 
 @app.get("/content-packs", response_model=List[ContentPack])
@@ -135,7 +130,8 @@ def list_jobs(
 
 @app.post("/content-packs/{content_pack_id}/approve")
 def approve_pack(content_pack_id: str, _: None = Depends(require_auth)) -> dict:
-    path = _ensure_db()
+    _ensure_db()
+    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     ok = db.set_content_pack_status(content_pack_id, "approved", db_path=path)
     if not ok:
         raise HTTPException(status_code=404, detail="content pack not found")
@@ -144,7 +140,8 @@ def approve_pack(content_pack_id: str, _: None = Depends(require_auth)) -> dict:
 
 @app.post("/content-packs/{content_pack_id}/reject")
 def reject_pack(content_pack_id: str, _: None = Depends(require_auth)) -> dict:
-    path = _ensure_db()
+    _ensure_db()
+    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     ok = db.set_content_pack_status(content_pack_id, "rejected", db_path=path)
     if not ok:
         raise HTTPException(status_code=404, detail="content pack not found")
@@ -153,7 +150,8 @@ def reject_pack(content_pack_id: str, _: None = Depends(require_auth)) -> dict:
 
 @app.post("/jobs/{job_id}/retry")
 def retry(job_id: str, _: None = Depends(require_auth)) -> dict:
-    path = _ensure_db()
+    _ensure_db()
+    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     ok = db.retry_job(job_id, db_path=path)
     if not ok:
         raise HTTPException(status_code=404, detail="job not found")
@@ -162,7 +160,8 @@ def retry(job_id: str, _: None = Depends(require_auth)) -> dict:
 
 @app.post("/runs/{job_id}/artifacts")
 def add_artifact(job_id: str, payload: ArtifactRequest, _: None = Depends(require_auth)) -> dict:
-    path = _ensure_db()
+    _ensure_db()
+    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     if not db.get_job(job_id, db_path=path):
         raise HTTPException(status_code=404, detail="job not found")
     artifact_id = db.record_artifact(
@@ -200,11 +199,11 @@ def _calc_reward(job_id: str, window: str, views: int, saves: int, shares: int, 
 
 @app.post("/jobs/{job_id}/metrics")
 def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_auth)) -> dict:
-    path = _ensure_db()
+    _ensure_db()
+    path = os.getenv("SOCIALIZER_DB", get_settings().db_path)
     job = db.get_job(job_id, db_path=path)
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
-
     reward = _calc_reward(job_id, payload.window, payload.views, payload.saves, payload.shares, db_path=path)
     metric_id, inserted = db.record_metrics(
         job_id=job_id,
@@ -217,16 +216,7 @@ def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_
         reward=reward,
         db_path=path,
     )
-    
-    if not inserted:
-        # We still return the reward, but it's the one from the existing record if we want to be fully accurate.
-        # But for simplicity, we'll just say already_exists.
-        # Let's fetch the existing reward if we want to be nice.
-        existing = [m for m in list_metrics(job_id, db_path=path) if m["id"] == metric_id]
-        existing_reward = existing[0]["reward"] if existing else reward
-        return {"id": metric_id, "reward": existing_reward, "status": "already_exists"}
-
-    if job.get("slot_utc"):
+    if inserted and payload.window == "24h" and job.get("slot_utc"):
         db.update_slot_stats(job["platform"], job["slot_utc"], reward, db_path=path)
     return {"id": metric_id, "reward": reward}
 
@@ -257,4 +247,5 @@ def schedule_tick(
     dry_run: bool = Query(False),
     _: None = Depends(require_auth),
 ) -> List[ScheduleResponse]:
-    return schedule_approved_content(platform=platform, limit=limit, dry_run=dry_run)
+    jobs = schedule_approved_content(platform=platform, limit=limit, dry_run=dry_run)
+    return jobs

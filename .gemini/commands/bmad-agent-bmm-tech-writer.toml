@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: tech-writer"
+prompt = """
+Activate BMAD agent 'tech-writer' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/tech-writer.agent.yaml and follow all activation instructions.
+"""

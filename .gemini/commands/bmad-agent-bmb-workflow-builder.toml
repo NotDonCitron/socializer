@@ -1,0 +1,6 @@
+description = "BMAD BMB Agent: workflow-builder"
+prompt = """
+Activate BMAD agent 'workflow-builder' from bmb module.
+
+Load the agent file from @_bmad/modules/bmb/agents/workflow-builder.agent.yaml and follow all activation instructions.
+"""

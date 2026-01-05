@@ -1,0 +1,6 @@
+description = "BMAD CIS Agent: brainstorming-coach"
+prompt = """
+Activate BMAD agent 'brainstorming-coach' from cis module.
+
+Load the agent file from @_bmad/modules/cis/agents/brainstorming-coach.agent.yaml and follow all activation instructions.
+"""

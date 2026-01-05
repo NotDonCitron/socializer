@@ -1,73 +1,94 @@
-# Instagram Stealth Uploader
+# Socializer
 
-Automated Instagram upload tool using undetected ChromeDriver with cookie-based authentication.
+A comprehensive Python-based automation framework for TikTok and Instagram using Playwright with advanced anti-detection measures.
 
 ## Features
 
-- **Stealth Mode**: Uses undetected ChromeDriver to avoid Instagram's bot detection
-- **Cookie Authentication**: Bypasses login using pre-configured session cookies
-- **Auto Caption Generation**: Automatically generates captions and hashtags based on image content
-- **Smart File Detection**: Automatically finds files with common image extensions
-- **Multi-language Support**: Works with both English and German Instagram interfaces
+- 🎭 **Stealth Mode**: Anti-detection browser flags, randomized viewport/UA, undetected ChromeDriver
+- 🖱️ **Human-like Behavior**: Bezier mouse movement, variable typing delays
+- 🔄 **Retry Logic**: Exponential backoff on failures
+- 💾 **Session Management**: SQLite persistence, health checks, cookie-based authentication
+- 🤖 **Auto Caption Generation**: AI-powered captions and hashtags based on image content
+- 🌐 **Multi-language Support**: Works with both English and German Instagram interfaces
+
+## Project Structure
+
+- `socializer/`: Core source code and package
+- `scripts/`: Helper scripts for maintenance and execution
+- `socializer-api/`: API components with FastAPI backend
+- `_bmad/`: BMAD methodology integration
+- Content generation and scheduling system
 
 ## Installation
 
-1. Clone the repository and navigate to the directory
-2. Create virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install undetected-chromedriver selenium
-   ```
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-## Usage
+# Install main package
+pip install -e socializer/
 
-### Basic Upload with Auto Caption
+# Install API package
+pip install -e socializer-api/
+
+# Install Playwright browsers
+playwright install chromium
+
+# For development: Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+
+# Alternative: For Instagram stealth mode only
+pip install undetected-chromedriver selenium
+```
+
+## Quick Start
+
+### Interactive Uploads (Playwright Mode)
+
+```bash
+# TikTok
+python socializer/examples/tiktok_interactive.py
+
+# Instagram
+python socializer/examples/instagram_interactive.py
+
+# Start API server
+uvicorn socializer_api.main:app --reload --port 8000
+```
+
+### Basic Upload with Auto Caption (Stealth Mode)
+
 ```bash
 ./run_upload.sh stealth "/path/to/your/image.jpg"
 ```
 
-### Manual Caption (if you modify the script)
-The script will prompt for:
-- Custom caption (leave empty for auto-generation)
-- Topic for hashtag generation (e.g., nature, cats, gaming)
-
 ## How It Works
 
-### 1. Authentication
+### Authentication
 - Uses pre-configured Instagram session cookies
 - Automatically handles URL decoding for cookie values
 - Validates login status before proceeding
+- Persistent browser sessions stored in SQLite
 
-### 2. Auto Caption Generation
+### Auto Caption Generation
 - Extracts hashtags from Instagram's search results
 - Falls back to scraping hashtags from related posts
 - Generates contextual captions with relevant hashtags
 - Limits to 15 hashtags for optimal engagement
 
-### 3. Upload Process
-- Navigates to Instagram and clicks "Create" button
-- Automatically detects and uploads the specified file
-- Handles the multi-step upload flow (Crop → Filter → Share)
+### Upload Process
+- Navigates to Instagram and handles Create button
+- Automatically detects and uploads specified files
+- Handles multi-step upload flow (Crop → Filter → Share)
 - Auto-fills caption with generated content
-
-## File Structure
-
-```
-.
-├── run_upload.sh              # Main execution script
-├── upload_instagram_stealth.py # Python automation script
-├── venv/                      # Virtual environment
-└── README.md                  # This documentation
-```
 
 ## Configuration
 
 ### Cookie Setup
-Edit `upload_instagram_stealth.py` to update your session cookies:
+
+Edit your automation scripts or use environment variables:
 
 ```python
 manual_cookies = {
@@ -80,7 +101,7 @@ manual_cookies = {
 
 ### Supported File Types
 - Images: `.png`, `.jpg`, `.jpeg`
-- Videos: `.mp4`, `.mov`
+- Videos: `.mp4`, `.mov`, `.avi`
 
 ## Troubleshooting
 
@@ -101,35 +122,49 @@ manual_cookies = {
 4. **Bot Detection**
    - If flagged, wait before retrying
    - Consider updating ChromeDriver version
+   - Use session persistence to avoid re-authentication
 
 ### Debug Mode
-To see what's happening, the script keeps the browser open for 60 seconds after completion.
+Scripts keep the browser open for inspection after completion for debugging purposes.
 
 ## Security Notes
 
 - **Never share your session cookies** - they provide full account access
+- **Never commit credentials** - use environment variables (`.env` file)
 - **Use in a controlled environment** - the script automates browser actions
 - **Regular cookie rotation** - Update cookies periodically for reliability
-- **Respect Instagram's ToS** - Use responsibly and don't spam
+- **Respect platform ToS** - Use responsibly and don't spam
 
-## Advanced Usage
+## Documentation
 
-### Custom Topics
-Modify the default topic in the script for better hashtag generation:
-
-```python
-topic = "your_custom_topic"  # Instead of "screenshot"
-```
-
-### Manual Caption
-Edit the script to enable manual caption input if needed.
+For more detailed information:
+- Core package: [socializer/README.md](socializer/README.md)
+- Agent system: [socializer/AGENTS.md](socializer/AGENTS.md)
+- Claude Code integration: [CLAUDE.md](CLAUDE.md)
+- BMAD methodology: [BMAD_QUICK_START.md](BMAD_QUICK_START.md)
 
 ## Dependencies
 
+### Core
+- `playwright`: Browser automation framework
+- `playwright-stealth`: Anti-detection measures
+- `fastapi`: API backend
+- `pydantic`: Data validation
+
+### Stealth Mode
 - `undetected-chromedriver`: Anti-detection Chrome driver
 - `selenium`: Web browser automation
-- `python3`: Runtime environment
 
 ## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](.github/CONTRIBUTING.md) for details on:
+- Code style and formatting
+- Development setup with pre-commit hooks
+- Testing requirements
+- Pull request process
 
 Use responsibly. This tool is for educational purposes and personal automation only.

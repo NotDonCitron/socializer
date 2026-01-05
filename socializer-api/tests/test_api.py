@@ -17,9 +17,12 @@ def make_client(tmp_path: Path) -> TestClient:
     reload(db)
     from socializer_api import app as app_module  # type: ignore
 
+    db.init_db(os.environ["SOCIALIZER_DB"])
     reload(app_module)
     app_module.db.init_db(os.environ["SOCIALIZER_DB"])
-    return TestClient(app_module.app)
+    client = TestClient(app_module.app)
+    app_module.db.init_db(os.environ["SOCIALIZER_DB"])
+    return client
 
 
 def test_approve_and_retry_flow(tmp_path):

@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: quick-flow-solo-dev"
+prompt = """
+Activate BMAD agent 'quick-flow-solo-dev' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/quick-flow-solo-dev.agent.yaml and follow all activation instructions.
+"""

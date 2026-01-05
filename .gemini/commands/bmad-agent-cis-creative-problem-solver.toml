@@ -1,0 +1,6 @@
+description = "BMAD CIS Agent: creative-problem-solver"
+prompt = """
+Activate BMAD agent 'creative-problem-solver' from cis module.
+
+Load the agent file from @_bmad/modules/cis/agents/creative-problem-solver.agent.yaml and follow all activation instructions.
+"""

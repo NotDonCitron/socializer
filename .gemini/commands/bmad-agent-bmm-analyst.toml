@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: analyst"
+prompt = """
+Activate BMAD agent 'analyst' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/analyst.agent.yaml and follow all activation instructions.
+"""

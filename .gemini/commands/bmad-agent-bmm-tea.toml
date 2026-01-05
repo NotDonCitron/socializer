@@ -1,0 +1,6 @@
+description = "BMAD BMM Agent: tea"
+prompt = """
+Activate BMAD agent 'tea' from bmm module.
+
+Load the agent file from @_bmad/modules/bmm/agents/tea.agent.yaml and follow all activation instructions.
+"""
