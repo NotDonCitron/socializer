@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./socializer:/app/socializer
+      - ./socializer-api:/app/socializer-api
+      - ./.env:/app/.env
+      - ./socializer.sqlite:/app/socializer.sqlite
+    environment:
+      - SOCIALIZER_DB=/app/socializer.sqlite
+      - PYTHONPATH=/app
+    restart: unless-stopped
+
+  # Optional: Database viewer
+  db-viewer:
+    image: coleifer/sqlite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./socializer.sqlite:/data/socializer.sqlite
+    command: ["-H", "0.0.0.0", "-x", "/data/socializer.sqlite"]
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  db_data:

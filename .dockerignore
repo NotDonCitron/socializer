@@ -1,0 +1,43 @@
+# Docker ignore
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+.git/
+.venv/
+venv/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.env
+.env.local
+
+# Sessions & temp files
+*_session/
+ig_session/
+tiktok_session/
+downloaded_files/
+export/
+content/
+debug_shots/
+data/
+
+# Documentation
+*.md
+!README.md
+project_knowledge/
+conductor/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/

@@ -22,20 +22,23 @@ A comprehensive Python-based automation framework for TikTok and Instagram using
 ## Installation
 
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # use `.venv\\Scripts\\activate` on Windows
 
-# Install main package
-pip install -e socializer/
+# Install the core packages and shared requirements
+pip install -e socializer/ -e socializer-api/
+pip install -r requirements.txt
 
-# Install API package
-pip install -e socializer-api/
-
-# Install Playwright browsers
+# Install Playwright browsers that the automation scripts rely on
 playwright install chromium
 
-# Alternative: For Instagram stealth mode only
+# Optional: stealth helpers
 pip install undetected-chromedriver selenium
+
+# Enable the project's pre-commit hooks
+pip install pre-commit
+pre-commit install
 ```
 
 ## Quick Start
@@ -140,16 +143,18 @@ For more detailed information:
 
 ## Dependencies
 
-### Core
-- `playwright`: Browser automation framework
-- `playwright-stealth`: Anti-detection measures
-- `fastapi`: API backend
-- `pydantic`: Data validation
+All runtime dependencies are declared in `requirements.txt` and in the `pyproject.toml` files for `socializer` and `socializer-api`. The stack relies on:
 
-### Stealth Mode
-- `undetected-chromedriver`: Anti-detection Chrome driver
-- `selenium`: Web browser automation
+- `fastapi`, `uvicorn`, `pydantic` to power the API.
+- `playwright` and `playwright-stealth` for browser automation.
+- `undetected-chromedriver` and `selenium` for optional stealth-only flows.
+
+Run `pip install -r requirements.txt` after activating your virtual environment to pull in the shared dependencies before working on the automation scripts.
 
 ## License
 
-Use responsibly. This tool is for educational purposes and personal automation only.
+MIT License – see [LICENSE](LICENSE) for the full terms.
+
+## Contributing
+
+We welcome contributions! Please review [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for the workflow, coding standards, testing requirements, and GitHub templates we expect contributors to follow before submitting work.
