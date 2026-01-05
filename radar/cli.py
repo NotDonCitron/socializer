@@ -2,18 +2,62 @@ import os
 import asyncio
 import typer
 from rich import print
-from radar.config import load_stack_config
-from radar.storage import connect, upsert_raw, raw_exists_with_same_hash, upsert_post, get_latest_raw_item
-from radar.sources.github import fetch_releases
-from radar.sources.webpage_diff import fetch_page
-from radar.pipeline.score import score_item
-from radar.pipeline.generate import generate_posts
-from radar.pipeline.render import render_posts
-from radar.pipeline.weekly import render_weekly
+from radar import config
+from radar import storage
+from radar.sources import github, webpage_diff
+from radar.pipeline import score, generate, render, weekly
 from radar.llm.mock import MockLLM
 from radar.llm.gemini_stub import GeminiLLM
 
 app = typer.Typer()
+
+# Lightweight wrappers so tests can patch either radar.cli.* or the underlying modules.
+def load_stack_config(stack_path: str):
+    return config.load_stack_config(stack_path)
+
+
+def connect(sqlite_path: str):
+    return storage.connect(sqlite_path)
+
+
+async def fetch_releases(source, token=""):
+    return await github.fetch_releases(source, token=token)
+
+
+async def fetch_page(source):
+    return await webpage_diff.fetch_page(source)
+
+
+def raw_exists_with_same_hash(con, source_id, kind, external_id, raw_hash):
+    return storage.raw_exists_with_same_hash(con, source_id, kind, external_id, raw_hash)
+
+
+def upsert_raw(con, item):
+    return storage.upsert_raw(con, item)
+
+
+def get_latest_raw_item(con, source_id, kind):
+    return storage.get_latest_raw_item(con, source_id, kind)
+
+
+def score_item(item, prev):
+    return score.score_item(item, prev)
+
+
+async def generate_posts(cfg, scored, llm):
+    return await generate.generate_posts(cfg, scored, llm)
+
+
+def upsert_post(con, post):
+    return storage.upsert_post(con, post)
+
+
+def render_posts(cfg, posts, output_dir="content"):
+    return render.render_posts(cfg, posts, output_dir=output_dir)
+
+
+def render_weekly(posts, output_dir="content", lang="en"):
+    return weekly.render_weekly(posts, output_dir=output_dir, lang=lang)
 
 def get_llm():
     provider = os.getenv("LLM_PROVIDER", "mock")
@@ -29,9 +73,19 @@ def version():
 @app.command()
 def run(stack_path: str = "stack.yaml"):
     """Fetch sources, score, generate posts, render markdown, write weekly digest."""
-    cfg = load_stack_config(stack_path)
     sqlite_path = os.getenv("SQLITE_PATH", "data/radar.sqlite")
-    con = connect(sqlite_path)
+    try:
+        cfg = load_stack_config(stack_path)
+    except Exception as exc:
+        print(f"[red]Error loading config: {exc}[/red]")
+        return
+
+    try:
+        con = connect(sqlite_path)
+    except Exception as exc:
+        print(f"[red]Error connecting to storage: {exc}[/red]")
+        return
+
     llm = get_llm()
     token = os.getenv("GITHUB_TOKEN", "")
 
@@ -61,9 +115,12 @@ def run(stack_path: str = "stack.yaml"):
             prev = get_latest_raw_item(con, item.source_id, item.kind)
             scored.append(score_item(item, prev))
 
-        posts = await generate_posts(cfg, scored, llm)
-        for p in posts:
-            upsert_post(con, p)
+        # Only generate posts if there are scored items
+        posts = []
+        if scored:
+            posts = await generate_posts(cfg, scored, llm)
+            for p in posts:
+                upsert_post(con, p)
 
         render_posts(cfg, posts, output_dir=os.getenv("OUTPUT_DIR", "content"))
         if posts:
