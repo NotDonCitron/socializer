@@ -7,9 +7,10 @@ from radar.browser import BrowserManager
 
 
 @pytest.fixture
-def mock_tiktok_automator():
+def mock_tiktok_automator(tmp_path):
     manager = MagicMock(spec=BrowserManager)
-    automator = TikTokAutomator(manager, user_data_dir="/tmp/fake_tiktok")
+    user_data_dir = tmp_path / "fake_tiktok"
+    automator = TikTokAutomator(manager, user_data_dir=str(user_data_dir))
     automator.page = MagicMock()
     return automator
 
@@ -78,16 +79,17 @@ def test_tiktok_upload_no_file(mock_tiktok_automator):
     assert "Video file not found" in mock_tiktok_automator.last_error
 
 
-def test_tiktok_upload_no_page():
+def test_tiktok_upload_no_page(tmp_path):
     """
     Test failure when page is not initialized.
     """
     manager = MagicMock(spec=BrowserManager)
-    automator = TikTokAutomator(manager, user_data_dir="/tmp/fake_tiktok")
+    user_data_dir = tmp_path / "fake_tiktok_no_page"
+    automator = TikTokAutomator(manager, user_data_dir=str(user_data_dir))
     # Don't set automator.page
-    
+
     success = automator.upload_video("test.mp4", retry=False)
-    
+
     assert success is False
     assert "Page not initialized" in automator.last_error
 

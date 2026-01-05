@@ -100,6 +100,89 @@ The system uses **Drizzle ORM** with a SQLite/PostgreSQL backend.
 
 ---
 
+## 🧪 Testing the Radar CLI
+
+### CLI Wrapper Pattern
+
+The Radar CLI module (`radar/cli.py`) implements lightweight wrapper functions (lines 14-66) around core functionality. This design enables flexible testing by allowing tests to patch either:
+- The wrapper: `@patch("radar.cli.fetch_releases")`
+- The underlying module: `@patch("radar.sources.github.fetch_releases")`
+
+### Why Use Wrappers?
+
+The wrapper pattern provides two key benefits:
+1. **Test Flexibility**: Tests can patch at the CLI layer for integration testing or at the module layer for unit testing
+2. **Interface Stability**: CLI command logic can be tested independently of underlying implementations
+
+### Testing CLI Commands
+
+When testing CLI commands, patch the wrappers to isolate CLI logic:
+
+```python
+from typer.testing import CliRunner
+from unittest.mock import patch, MagicMock
+from radar.cli import app
+
+@patch("radar.cli.load_stack_config")
+@patch("radar.cli.connect")
+def test_run_command(mock_connect, mock_load_config):
+    # Configure mocks
+    mock_config = MagicMock()
+    mock_config.sources = []
+    mock_load_config.return_value = mock_config
+    mock_connect.return_value = MagicMock()
+
+    # Test CLI behavior
+    runner = CliRunner()
+    result = runner.invoke(app, ["run"])
+
+    # Verify calls
+    assert result.exit_code == 0
+    mock_load_config.assert_called_once()
+```
+
+### Testing Async Wrappers
+
+For async wrappers, use `AsyncMock` or let `@patch` handle it automatically:
+
+```python
+@pytest.mark.asyncio
+async def test_async_wrapper():
+    from radar import cli
+    from radar.sources import github
+
+    with patch.object(github, 'fetch_releases', new=AsyncMock()) as mock_fetch:
+        mock_fetch.return_value = ["result"]
+
+        # Test async wrapper
+        result = await cli.fetch_releases(MagicMock(), token="test")
+        assert result == ["result"]
+```
+
+### Running Tests
+
+```bash
+# Run full test suite
+python -m pytest -v
+
+# Run CLI tests only
+python -m pytest tests/test_cli.py -v
+
+# Run with coverage
+python -m pytest --cov=radar --cov-report=html
+```
+
+### Test Organization
+
+Tests are organized into focused files:
+- `tests/test_cli.py` - CLI wrapper tests, command tests, and integration tests
+- `tests/test_pipeline_*.py` - Pipeline stage tests (score, generate, render)
+- `tests/test_sources.py` - Data source tests (GitHub, webpage)
+- `tests/test_storage.py` - Database persistence tests
+- `tests/test_llm.py` - LLM provider tests
+
+---
+
 ## ⚠️ Troubleshooting
 
 ### ModuleNotFoundError: No module named 'playwright'

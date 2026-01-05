@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 import typer
 from rich import print
 from radar import config
@@ -8,6 +9,9 @@ from radar.sources import github, webpage_diff
 from radar.pipeline import score, generate, render, weekly
 from radar.llm.mock import MockLLM
 from radar.llm.gemini_stub import GeminiLLM
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 app = typer.Typer()
 
@@ -90,6 +94,12 @@ def run(stack_path: str = "stack.yaml"):
     token = os.getenv("GITHUB_TOKEN", "")
 
     async def _main():
+        # Check for zero sources
+        if not cfg.sources:
+            logger.warning("No sources configured in stack.yaml")
+            print("[yellow]No sources configured in stack.yaml[/yellow]")
+            return
+
         raw_items = []
         for src in cfg.sources:
             try:
@@ -98,17 +108,31 @@ def run(stack_path: str = "stack.yaml"):
                 elif src.type == "webpage_diff":
                     raw_items.append(await fetch_page(src))
             except Exception as e:
+                logger.error(f"Error fetching {src.id}: {e}")
                 print(f"[red]Error fetching {src.id}: {e}[/red]")
+
+        # Log if no items were fetched
+        if len(raw_items) == 0:
+            logger.warning("No items fetched from any source. Check source configurations.")
+            print("[yellow]No items fetched from any source. Check source configurations.[/yellow]")
 
         # store raw + skip unchanged
         changed = []
         for item in raw_items:
             if raw_exists_with_same_hash(con, item.source_id, item.kind, item.external_id, item.raw_hash):
                 continue
-            upsert_raw(con, item)
-            changed.append(item)
+            try:
+                upsert_raw(con, item)
+                changed.append(item)
+            except Exception as e:
+                logger.error(f"Error storing raw item {item.external_id}: {e}")
+                print(f"[red]Error storing raw item {item.external_id}: {e}[/red]")
 
         print(f"[green]Fetched[/green] {len(raw_items)} items, [yellow]changed[/yellow] {len(changed)}")
+
+        # Log if no changes detected
+        if len(changed) == 0:
+            logger.info("No changed items to score")
 
         scored = []
         for item in changed:
@@ -120,13 +144,32 @@ def run(stack_path: str = "stack.yaml"):
         if scored:
             posts = await generate_posts(cfg, scored, llm)
             for p in posts:
-                upsert_post(con, p)
+                try:
+                    upsert_post(con, p)
+                except Exception as e:
+                    logger.error(f"Error storing post: {e}")
+                    print(f"[red]Error storing post: {e}[/red]")
 
-        render_posts(cfg, posts, output_dir=os.getenv("OUTPUT_DIR", "content"))
+        # Render posts with error handling
+        try:
+            render_posts(cfg, posts, output_dir=os.getenv("OUTPUT_DIR", "content"))
+        except Exception as e:
+            logger.error(f"Error rendering posts: {e}")
+            print(f"[red]Error rendering posts: {e}[/red]")
+
         if posts:
-            render_weekly(posts, output_dir=os.getenv("OUTPUT_DIR", "content"), lang="en")
+            try:
+                render_weekly(posts, output_dir=os.getenv("OUTPUT_DIR", "content"), lang="en")
+            except Exception as e:
+                logger.error(f"Error rendering weekly digest (en): {e}")
+                print(f"[red]Error rendering weekly digest (en): {e}[/red]")
+
             if "de" in cfg.languages:
-                render_weekly([p for p in posts if "de" in p.languages], output_dir=os.getenv("OUTPUT_DIR", "content"), lang="de")
+                try:
+                    render_weekly([p for p in posts if "de" in p.languages], output_dir=os.getenv("OUTPUT_DIR", "content"), lang="de")
+                except Exception as e:
+                    logger.error(f"Error rendering weekly digest (de): {e}")
+                    print(f"[red]Error rendering weekly digest (de): {e}[/red]")
 
         print(f"[cyan]Generated[/cyan] {len(posts)} posts")
 

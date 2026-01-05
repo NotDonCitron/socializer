@@ -4,9 +4,10 @@ from radar.instagram import InstagramAutomator
 from radar.browser import BrowserManager
 
 @pytest.fixture
-def mock_automator():
+def mock_automator(tmp_path):
     manager = MagicMock(spec=BrowserManager)
-    automator = InstagramAutomator(manager, user_data_dir="/tmp/fake")
+    user_data_dir = tmp_path / "fake_ig_data"
+    automator = InstagramAutomator(manager, user_data_dir=str(user_data_dir))
     automator.page = MagicMock()
     return automator
 
