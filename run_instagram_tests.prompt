@@ -1,0 +1,159 @@
+# Instagram Upload Testing Prompt
+
+## Objective
+Run comprehensive diagnostics and tests for Instagram upload functionality to identify and resolve upload failures.
+
+## Test Files Created
+- `instagram_upload_troubleshooting.md` - Comprehensive troubleshooting guide
+- `radar/instagram_enhanced.py` - Enhanced Instagram automation with better error handling
+- `debug_upload_issue.py` - Diagnostic script for systematic testing
+
+## Required Setup
+1. Ensure you have a test media file (video/image) in the project root
+2. Have an active Instagram session in `ig_session/` directory
+3. Install dependencies: `pip install -e . && playwright install chromium`
+
+## Test Execution Sequence
+
+### Phase 1: File and Environment Validation
+```bash
+# 1. Run diagnostic script on your test file
+python debug_upload_issue.py path/to/your/test_video.mp4
+
+# 2. Check debug output in debug_shots/ directory
+ls -la debug_shots/
+```
+
+### Phase 2: Enhanced Automation Testing
+```python
+# Use the enhanced Instagram automator in your code
+from radar.instagram_enhanced import EnhancedInstagramAutomator
+from radar.browser import BrowserManager
+
+# Initialize with enhanced error handling
+with BrowserManager() as manager:
+    automator = EnhancedInstagramAutomator(manager, "ig_session")
+
+    # Enable debug mode for detailed logging
+    import os
+    os.environ["DEBUG"] = "1"
+
+    # Run upload with comprehensive retry logic
+    success = automator.robust_upload_video(
+        file_path="your_video.mp4",
+        caption="Test upload with enhanced automation",
+        max_retries=3
+    )
+
+    if success:
+        print("✅ Upload successful with enhanced automation!")
+    else:
+        print("❌ Upload failed - check debug logs and screenshots")
+        automator.diagnose_upload_issue()
+```
+
+### Phase 3: Comparison Testing
+```bash
+# Test both original and enhanced versions
+echo "Testing original automation..."
+python examples/instagram_interactive.py
+
+echo "Testing enhanced automation..."
+python -c "
+from radar.instagram_enhanced import EnhancedInstagramAutomator
+from radar.browser import BrowserManager
+import os
+
+os.environ['DEBUG'] = '1'
+with BrowserManager() as manager:
+    automator = EnhancedInstagramAutomator(manager, 'ig_session')
+    result = automator.robust_upload_video('test_video.mp4', 'Enhanced test')
+    print(f'Enhanced result: {result}')
+"
+```
+
+### Phase 4: Debug Analysis
+```bash
+# Analyze debug output
+echo "=== Debug Analysis ==="
+echo "Screenshots captured:"
+ls -la debug_shots/*.png 2>/dev/null || echo "No screenshots found"
+
+echo "HTML dumps:"
+ls -la debug_shots/*.html 2>/dev/null || echo "No HTML dumps found"
+
+echo "Error logs:"
+grep -r "IG_UPLOAD_FAIL" debug_shots/ 2>/dev/null || echo "No upload failure logs found"
+```
+
+## Expected Test Results
+
+### ✅ Success Indicators
+- Diagnostic script passes all validation checks
+- Enhanced automation completes upload successfully
+- No error screenshots in debug_shots/
+- Success message appears in logs
+
+### ❌ Failure Indicators
+- File validation fails (size, format, corruption)
+- Browser setup fails (Playwright issues)
+- Upload dialog errors (Next/Share button not found)
+- Session expired errors
+- Network timeout errors
+
+## Troubleshooting Common Issues
+
+### Issue: "File too large" or "Unsupported format"
+**Solution:** Check file meets Instagram requirements
+```python
+from radar.instagram_enhanced import EnhancedInstagramAutomator
+automator = EnhancedInstagramAutomator(None, None)
+automator.validate_media_file("your_file.mp4")  # Returns True/False
+```
+
+### Issue: "Next button not found"
+**Solution:** Instagram UI changes - check selectors in enhanced automation
+```python
+# The enhanced version tries multiple selector strategies
+automator.diagnose_upload_issue()  # Shows available buttons
+```
+
+### Issue: "Session expired"
+**Solution:** Check session validity before upload
+```python
+if not automator.check_session_validity():
+    print("Session expired - manual login required")
+```
+
+### Issue: "Popup interference"
+**Solution:** Enhanced popup handling automatically closes interfering dialogs
+```python
+popups_closed = automator.enhanced_popup_handler()
+print(f"Closed {popups_closed} popups")
+```
+
+## Performance Comparison
+
+| Feature | Original | Enhanced |
+|---------|----------|----------|
+| Error Detection | Basic | Comprehensive |
+| Retry Logic | Limited | Exponential backoff |
+| Debug Output | Minimal | Detailed screenshots + HTML dumps |
+| Popup Handling | Basic | Advanced with multiple selectors |
+| Session Management | Basic | Validity checking |
+| File Validation | None | Size, format, corruption checks |
+| Timeout Handling | Fixed | Adaptive based on file processing |
+
+## Next Steps After Testing
+
+1. **If tests pass**: Use enhanced automation in production
+2. **If file issues**: Fix media file (size, format, corruption)
+3. **If session issues**: Refresh Instagram session
+4. **If selector issues**: Report UI changes to update selectors
+5. **If network issues**: Check connectivity and retry later
+
+## Files to Review
+- `instagram_upload_troubleshooting.md` - Detailed solutions for each error type
+- `radar/instagram_enhanced.py` - Source code for enhanced automation
+- `debug_upload_issue.py` - Diagnostic script source
+- `debug_shots/` - Debug screenshots and logs from test runs

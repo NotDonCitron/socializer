@@ -26,10 +26,12 @@ def _frontmatter(post: GeneratedPost, lang: str, noindex: bool) -> str:
     fm.append("---")
     return "\n".join(fm)
 
-def render_posts(cfg: StackConfig, posts: list[GeneratedPost], output_dir: str = "content") -> None:
+def render_posts(cfg: StackConfig | None, posts: list[GeneratedPost], output_dir: str = "content") -> None:
     out_base = Path(output_dir)
     for p in posts:
-        noindex = p.impact_score < cfg.posting.post_if_impact_gte or p.confidence == "low"
+        # If cfg is None, use default threshold of 0
+        threshold = cfg.posting.post_if_impact_gte if cfg else 0
+        noindex = p.impact_score < threshold or p.confidence == "low"
 
         # EN
         if "en" in p.languages:

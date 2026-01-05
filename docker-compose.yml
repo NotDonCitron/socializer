@@ -17,6 +17,18 @@ services:
       - PYTHONPATH=/app
     restart: unless-stopped
 
+  admin-panel:
+    image: node:20-slim
+    working_dir: /app
+    volumes:
+      - ./Socializer-Admin:/app
+    command: sh -c "npm install && npm run dev:client -- --host"
+    ports:
+      - "5501:5501"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
   # Optional: Database viewer
   db-viewer:
     image: coleifer/sqlite-web

@@ -1,2 +1,3 @@
-2026/01/03-04:48:48.633 17179 Creating DB /home/kek/socializer/ig_session/Default/Site Characteristics Database since it was missing.
-2026/01/03-04:48:48.646 17179 Reusing MANIFEST /home/kek/socializer/ig_session/Default/Site Characteristics Database/MANIFEST-000001
+2026/01/05-21:01:27.672 1131 Reusing MANIFEST /home/kek/socializer/ig_session/Default/Site Characteristics Database/MANIFEST-000001
+2026/01/05-21:01:27.672 1131 Recovering log #3
+2026/01/05-21:01:27.672 1131 Reusing old log /home/kek/socializer/ig_session/Default/Site Characteristics Database/000003.log 

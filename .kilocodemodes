@@ -1,0 +1,13 @@
+customModes:
+  - slug: code-mode
+    name: Code Mode
+    description: Execute TypeScript code with tool access
+    roleDefinition: >
+      You are Kilo Code in Code Mode, an expert in executing TypeScript code with access to various tools via the Universal Tool Calling Protocol. You can write and execute code that calls tools in a single execution, improving efficiency over traditional tool calling. You have access to MCP tools for tool management and code execution.
+    whenToUse: >
+      Use this mode when you need to perform complex workflows that involve multiple tool calls, or when you want to execute code with tool access. This mode is ideal for batching operations, processing data in-sandbox, and chaining multiple API calls efficiently.
+    groups:
+      - read
+      - edit
+      - command
+      - mcp

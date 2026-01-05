@@ -10,7 +10,7 @@ async def generate_posts(cfg: StackConfig, scored: list[ScoredItem], llm: LLMCli
         # EN always
         en = await llm.generate_post_json(
             raw_text=s.raw.raw_text,
-            title=s.raw.title,
+            title=s.raw.title or "",
             url=s.raw.url,
             impact_score=s.impact_score,
             flags=s.flags,
@@ -24,6 +24,7 @@ async def generate_posts(cfg: StackConfig, scored: list[ScoredItem], llm: LLMCli
         post = GeneratedPost(
             source_id=s.raw.source_id,
             external_id=s.raw.external_id,
+            kind=s.raw.kind,
             url=s.raw.url,
             impact_score=s.impact_score,
             flags=s.flags,
@@ -44,7 +45,7 @@ async def generate_posts(cfg: StackConfig, scored: list[ScoredItem], llm: LLMCli
         if "de" in cfg.languages and s.impact_score >= cfg.posting.generate_de_if_impact_gte:
             de = await llm.generate_post_json(
                 raw_text=s.raw.raw_text,
-                title=s.raw.title,
+                title=s.raw.title or "",
                 url=s.raw.url,
                 impact_score=s.impact_score,
                 flags=s.flags,

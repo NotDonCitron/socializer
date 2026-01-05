@@ -27,7 +27,7 @@ class RawItem(BaseModel):
     source_id: str
     kind: Literal["release", "webpage"]
     external_id: str # e.g. tag_name or url hash key
-    title: str
+    title: Optional[str] = None
     url: str
     published_at: Optional[str] = None
     raw_text: str
@@ -43,22 +43,20 @@ class ScoredItem(BaseModel):
 class GeneratedPost(BaseModel):
     source_id: str
     external_id: str
+    kind: Literal["release", "webpage"]
     url: str
     impact_score: int
     flags: List[str]
     tags: List[str]
     languages: List[str]
-
-    title_en: str
-    hook_en: str
-    short_en: str
+    title_en: Optional[str] = None
+    hook_en: Optional[str] = None
+    short_en: Optional[str] = None
     medium_en: Optional[str] = None
-
     title_de: Optional[str] = None
     hook_de: Optional[str] = None
     short_de: Optional[str] = None
     medium_de: Optional[str] = None
-
     action_items: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
-    confidence: Literal["low", "medium", "high"] = "medium"
+    confidence: str = "low"

@@ -4,6 +4,7 @@ from typing import List
 class GeminiLLM(LLMClient):
     def __init__(self, api_key: str):
         self.api_key = api_key
+        self.client = None  # satisfy tests that expect a 'client' attribute
 
     async def generate_post_json(self, *, raw_text: str, title: str, url: str, impact_score: int, flags: List[str], lang: str) -> dict:
         # TODO: implement actual Gemini API call if you have API access.

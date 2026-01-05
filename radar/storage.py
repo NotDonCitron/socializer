@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS raw_items (
 CREATE TABLE IF NOT EXISTS posts (
     source_id TEXT,
     external_id TEXT,
+    kind TEXT,
     post_json TEXT,
     PRIMARY KEY (source_id, external_id)
 );
@@ -84,7 +85,7 @@ def get_latest_raw_item(con: sqlite3.Connection, source_id: str, kind: str) -> R
 def upsert_post(con: sqlite3.Connection, post: GeneratedPost) -> None:
     import json
     con.execute(
-        "INSERT OR REPLACE INTO posts (source_id, external_id, post_json) VALUES (?, ?, ?)",
-        (post.source_id, post.external_id, post.model_dump_json()),
+        "INSERT OR REPLACE INTO posts (source_id, external_id, kind, post_json) VALUES (?, ?, ?, ?)",
+        (post.source_id, post.external_id, post.kind, post.model_dump_json()),
     )
     con.commit()

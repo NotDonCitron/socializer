@@ -6,6 +6,7 @@ from radar.browser import BrowserManager
 from radar.selectors import SelectorStrategy, TIKTOK_SELECTORS
 from radar.human_behavior import human_delay, human_type, human_click, wait_human
 from radar.session_manager import validate_tiktok_session, load_playwright_cookies
+from radar.engagement_models import EngagementAction, EngagementResult, EngagementActionType, EngagementPlatform, EngagementStatus
 import time
 import os
 import datetime
@@ -352,3 +353,392 @@ class TikTokAutomator:
                 print(f"Screenshot saved to '{filename}'")
             except Exception as e:
                 print(f"Failed to save error screenshot: {e}")
+
+    def _navigate_to_video(self, video_url: str) -> bool:
+        """Navigate to a specific TikTok video."""
+        try:
+            print(f"Navigating to video: {video_url}")
+            self.page.goto(video_url, wait_until="domcontentloaded", timeout=30000)
+            self.page.wait_for_timeout(3000)  # Wait for video to load
+            self._dismiss_overlays()
+            return True
+        except Exception as e:
+            self.last_error = f"Navigation failed: {e}"
+            return False
+
+    def _execute_engagement_action(self, action_type: EngagementActionType, target_identifier: str,
+                                 metadata: dict = None) -> EngagementResult:
+        """Execute an engagement action with proper tracking and error handling."""
+        action = EngagementAction(
+            action_type=action_type,
+            platform=EngagementPlatform.TIKTOK,
+            target_identifier=target_identifier,
+            metadata=metadata or {}
+        )
+
+        try:
+            # Navigate to target if it's a URL
+            if target_identifier.startswith(('http://', 'https://')):
+                if not self._navigate_to_video(target_identifier):
+                    return EngagementResult(
+                        action=action,
+                        success=False,
+                        message=f"Failed to navigate to {target_identifier}: {self.last_error}"
+                    )
+
+            # Execute the specific action
+            result = self._perform_action(action)
+            return result
+
+        except Exception as e:
+            action.status = EngagementStatus.FAILED
+            action.error_message = str(e)
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Engagement action failed: {e}"
+            )
+
+    def _perform_action(self, action: EngagementAction) -> EngagementResult:
+        """Perform the specific engagement action."""
+        strategy = SelectorStrategy(self.page)
+
+        if action.action_type == EngagementActionType.LIKE:
+            return self._perform_like(action, strategy)
+        elif action.action_type == EngagementActionType.FOLLOW:
+            return self._perform_follow(action, strategy)
+        elif action.action_type == EngagementActionType.COMMENT:
+            return self._perform_comment(action, strategy)
+        elif action.action_type == EngagementActionType.SAVE:
+            return self._perform_save(action, strategy)
+        elif action.action_type == EngagementActionType.SHARE:
+            return self._perform_share(action, strategy)
+        else:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Unsupported action type: {action.action_type}"
+            )
+
+    def _perform_like(self, action: EngagementAction, strategy: SelectorStrategy) -> EngagementResult:
+        """Perform like action on a TikTok video."""
+        try:
+            print("Attempting to like video")
+
+            # Try to find like button
+            like_button = strategy.find(TIKTOK_SELECTORS["like_button"], timeout=5000)
+            if not like_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Like button not found"
+                )
+
+            # Check if already liked
+            unlike_button = strategy.find(TIKTOK_SELECTORS["unlike_button"], timeout=1000)
+            if unlike_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Video already liked"
+                )
+
+            # Click like button with human-like behavior
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            # Verify like was successful
+            unlike_button = strategy.find(TIKTOK_SELECTORS["unlike_button"], timeout=3000)
+            if unlike_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Video liked successfully"
+                )
+            else:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Could not verify like action"
+                )
+
+        except Exception as e:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Like failed: {e}"
+            )
+
+    def _perform_follow(self, action: EngagementAction, strategy: SelectorStrategy) -> EngagementResult:
+        """Perform follow action on a TikTok creator."""
+        try:
+            print("Attempting to follow creator")
+
+            # Try to find follow button
+            follow_button = strategy.find(TIKTOK_SELECTORS["follow_button"], timeout=5000)
+            if not follow_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Follow button not found"
+                )
+
+            # Check if already following
+            unfollow_button = strategy.find(TIKTOK_SELECTORS["unfollow_button"], timeout=1000)
+            if unfollow_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Already following creator"
+                )
+
+            # Click follow button with human-like behavior
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            # Verify follow was successful
+            unfollow_button = strategy.find(TIKTOK_SELECTORS["unfollow_button"], timeout=3000)
+            if unfollow_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Creator followed successfully"
+                )
+            else:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Could not verify follow action"
+                )
+
+        except Exception as e:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Follow failed: {e}"
+            )
+
+    def _perform_comment(self, action: EngagementAction, strategy: SelectorStrategy) -> EngagementResult:
+        """Perform comment action on a TikTok video."""
+        try:
+            print("Attempting to comment on video")
+
+            comment_text = action.metadata.get("comment_text", "")
+            if not comment_text:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="No comment text provided"
+                )
+
+            # Find comment button
+            comment_button = strategy.find(TIKTOK_SELECTORS["comment_button"], timeout=5000)
+            if not comment_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Comment button not found"
+                )
+
+            # Click comment button
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            # Find comment input
+            comment_input = strategy.find(TIKTOK_SELECTORS["comment_input"], timeout=5000)
+            if not comment_input:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Comment input not found"
+                )
+
+            # Type comment with human-like behavior
+            human_type(self.page, strategy.last_successful_selector, comment_text)
+            wait_human(self.page, 'type')
+
+            # Find and click post button
+            post_button = strategy.find(TIKTOK_SELECTORS["post_comment_button"], timeout=5000)
+            if not post_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Post comment button not found"
+                )
+
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            # Verify comment was posted
+            # Look for the comment text in the comments section
+            if strategy.is_any_visible([f'text="{comment_text}"'], timeout=5000):
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Comment posted successfully"
+                )
+            else:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Could not verify comment was posted"
+                )
+
+        except Exception as e:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Comment failed: {e}"
+            )
+
+    def _perform_save(self, action: EngagementAction, strategy: SelectorStrategy) -> EngagementResult:
+        """Perform save action on a TikTok video."""
+        try:
+            print("Attempting to save video")
+
+            # Try to find save button
+            save_button = strategy.find(TIKTOK_SELECTORS["save_button"], timeout=5000)
+            if not save_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Save button not found"
+                )
+
+            # Check if already saved
+            unsave_button = strategy.find(TIKTOK_SELECTORS["unsave_button"], timeout=1000)
+            if unsave_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Video already saved"
+                )
+
+            # Click save button with human-like behavior
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            # Verify save was successful
+            unsave_button = strategy.find(TIKTOK_SELECTORS["unsave_button"], timeout=3000)
+            if unsave_button:
+                return EngagementResult(
+                    action=action,
+                    success=True,
+                    message="Video saved successfully"
+                )
+            else:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Could not verify save action"
+                )
+
+        except Exception as e:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Save failed: {e}"
+            )
+
+    def _perform_share(self, action: EngagementAction, strategy: SelectorStrategy) -> EngagementResult:
+        """Perform share action on a TikTok video."""
+        try:
+            print("Attempting to share video")
+
+            share_method = action.metadata.get("method", "dm")
+
+            # Find share button
+            share_button = strategy.find(TIKTOK_SELECTORS["share_button_engage"], timeout=5000)
+            if not share_button:
+                return EngagementResult(
+                    action=action,
+                    success=False,
+                    message="Share button not found"
+                )
+
+            # Click share button
+            human_click(self.page, strategy.last_successful_selector)
+            wait_human(self.page, 'click')
+
+            if share_method == "dm":
+                # Find DM option
+                dm_button = strategy.find(['button:has-text("Message")', 'button:has-text("Nachricht")'], timeout=5000)
+                if not dm_button:
+                    return EngagementResult(
+                        action=action,
+                        success=False,
+                        message="DM button not found in share dialog"
+                    )
+
+                human_click(self.page, strategy.last_successful_selector)
+                wait_human(self.page, 'click')
+
+                # For now, just click the first user suggestion
+                first_user = strategy.find(['div[role="button"]:has(img)'], timeout=5000)
+                if first_user:
+                    human_click(self.page, strategy.last_successful_selector)
+                    wait_human(self.page, 'click')
+
+                    # Click send button
+                    send_button = strategy.find(['button:has-text("Send")', 'div:has-text("Senden")'], timeout=5000)
+                    if send_button:
+                        human_click(self.page, strategy.last_successful_selector)
+                        wait_human(self.page, 'click')
+                        return EngagementResult(
+                            action=action,
+                            success=True,
+                            message="Video shared via DM successfully"
+                        )
+
+            return EngagementResult(
+                action=action,
+                success=False,
+                message="Share method not implemented"
+            )
+
+        except Exception as e:
+            return EngagementResult(
+                action=action,
+                success=False,
+                message=f"Share failed: {e}"
+            )
+
+    # Public engagement methods
+    def like_video(self, video_url: str) -> EngagementResult:
+        """Like a TikTok video."""
+        return self._execute_engagement_action(
+            EngagementActionType.LIKE,
+            video_url
+        )
+
+    def follow_creator(self, username: str) -> EngagementResult:
+        """Follow a TikTok creator."""
+        # Convert username to profile URL
+        profile_url = f"https://www.tiktok.com/@{username}"
+        return self._execute_engagement_action(
+            EngagementActionType.FOLLOW,
+            profile_url
+        )
+
+    def comment_on_video(self, video_url: str, comment_text: str) -> EngagementResult:
+        """Comment on a TikTok video."""
+        return self._execute_engagement_action(
+            EngagementActionType.COMMENT,
+            video_url,
+            {"comment_text": comment_text}
+        )
+
+    def save_video(self, video_url: str) -> EngagementResult:
+        """Save a TikTok video."""
+        return self._execute_engagement_action(
+            EngagementActionType.SAVE,
+            video_url
+        )
+
+    def share_video(self, video_url: str, method: str = "dm") -> EngagementResult:
+        """Share a TikTok video."""
+        return self._execute_engagement_action(
+            EngagementActionType.SHARE,
+            video_url,
+            {"method": method}
+        )

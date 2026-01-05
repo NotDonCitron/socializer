@@ -29,20 +29,26 @@ def semver_major_bump(new_tag: str, old_tag: str | None) -> bool:
     def get_major(tag: str | None) -> int | None:
         if not tag:
             return None
+        # Handle v prefix
+        tag = tag.lstrip('v')
         m = re.search(r"(\d+)\.", tag)
         return int(m.group(1)) if m else None
 
     new_major = get_major(new_tag)
     old_major = get_major(old_tag)
 
-    if new_major is not None and old_major is not None:
-        return new_major > old_major
+    # If new tag is not valid semver, no bump
+    if new_major is None:
+        return False
     
-    # Fallback for first time seen or non-semver
-    if new_major is not None and old_major is None:
-        return new_major >= 1
+    # If old tag is not valid semver (None, empty, or no major number), no bump
+    if old_major is None:
+        return False
     
-    return False
+    # Pre-release versions don't prevent major version detection
+    # The major version number change determines if it's a major bump
+    
+    return new_major > old_major
 
 def score_item(raw: RawItem, prev_raw: RawItem | None = None) -> ScoredItem:
     text = (raw.raw_text or "").lower()

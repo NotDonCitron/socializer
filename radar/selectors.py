@@ -108,6 +108,80 @@ TIKTOK_SELECTORS = {
         'button:has-text("Alle ablehnen")',
         'div[class*="cookie-banner"] button[class*="primary"]',
     ],
+    # Engagement selectors
+    "like_button": [
+        'svg[data-e2e="like-icon"]',
+        'button[data-e2e="like-button"]',
+        'svg[aria-label*="Like" i]',
+        'div[data-e2e*="like"]',
+        'button:has(svg[data-e2e="like-icon"])',
+    ],
+    "unlike_button": [
+        'svg[data-e2e="liked-icon"]',
+        'button[data-e2e="like-button"][data-e2e*="liked"]',
+        'div[data-e2e*="liked"]',
+    ],
+    "comment_button": [
+        'svg[data-e2e="comment-icon"]',
+        'button[data-e2e="comment-button"]',
+        'svg[aria-label*="Comment" i]',
+        'div[data-e2e*="comment"]',
+    ],
+    "share_button_engage": [
+        'svg[data-e2e="share-icon"]',
+        'button[data-e2e="share-button"]',
+        'svg[aria-label*="Share" i]',
+        'div[data-e2e*="share"]',
+    ],
+    "save_button": [
+        'svg[data-e2e="collect-icon"]',
+        'button[data-e2e="collect-button"]',
+        'svg[aria-label*="Save" i]',
+        'div[data-e2e*="collect"]',
+    ],
+    "unsave_button": [
+        'svg[data-e2e="collected-icon"]',
+        'button[data-e2e="collect-button"][data-e2e*="collected"]',
+        'div[data-e2e*="collected"]',
+    ],
+    "follow_button": [
+        'button[data-e2e="follow-button"]',
+        'button:has-text("Follow")',
+        'button:has-text("Folgen")',  # German
+        'div[data-e2e*="follow"]',
+    ],
+    "unfollow_button": [
+        'button[data-e2e="following-button"]',
+        'button:has-text("Following")',
+        'button:has-text("Abonniert")',  # German
+        'div[data-e2e*="following"]',
+    ],
+    "comment_input": [
+        'textarea[data-e2e="comment-input"]',
+        'div[contenteditable="true"][data-e2e*="comment"]',
+        'textarea[placeholder*="Add comment" i]',
+        'textarea[placeholder*="Kommentar hinzufügen" i]',  # German
+    ],
+    "post_comment_button": [
+        'button[data-e2e="comment-post"]',
+        'button:has-text("Post")',
+        'button:has-text("Kommentieren")',  # German
+    ],
+    "duet_button": [
+        'button[data-e2e="duet-button"]',
+        'svg[data-e2e="duet-icon"]',
+        'div[data-e2e*="duet"]',
+    ],
+    "stitch_button": [
+        'button[data-e2e="stitch-button"]',
+        'svg[data-e2e="stitch-icon"]',
+        'div[data-e2e*="stitch"]',
+    ],
+    "live_comment_input": [
+        'input[data-e2e="live-comment-input"]',
+        'textarea[data-e2e="live-comment-input"]',
+        'div[contenteditable="true"][data-e2e*="live-comment"]',
+    ],
 }
 
 # Instagram Selectors
@@ -162,6 +236,79 @@ INSTAGRAM_SELECTORS = {
         'text="Dein Beitrag wurde geteilt"',
         'h2:has-text("shared")',
         'svg[aria-label="Animated checkmark"]'
+    ],
+    # Engagement selectors
+    "like_button": [
+        'svg[aria-label="Like"]',
+        'svg[aria-label="Gefällt mir"]',  # German
+        'button[aria-label*="Like" i]',
+        'button[aria-label*="Gefällt" i]',
+        'span[data-visualcompletion="ignore-dynamic"]:has(svg[aria-label="Like"])',
+        'div[role="button"]:has(svg[aria-label="Like"])',
+    ],
+    "unlike_button": [
+        'svg[aria-label="Unlike"]',
+        'svg[aria-label="Gefällt mir nicht mehr"]',  # German
+        'button[aria-label*="Unlike" i]',
+        'span[data-visualcompletion="ignore-dynamic"]:has(svg[aria-label="Unlike"])',
+    ],
+    "comment_button": [
+        'svg[aria-label="Comment"]',
+        'svg[aria-label="Kommentieren"]',  # German
+        'button[aria-label*="Comment" i]',
+        'div[role="button"]:has(svg[aria-label="Comment"])',
+    ],
+    "share_button_engage": [
+        'svg[aria-label="Share"]',
+        'svg[aria-label="Teilen"]',  # German
+        'button[aria-label*="Share" i]',
+        'div[role="button"]:has(svg[aria-label="Share"])',
+    ],
+    "save_button": [
+        'svg[aria-label="Save"]',
+        'svg[aria-label="Speichern"]',  # German
+        'button[aria-label*="Save" i]',
+        'div[role="button"]:has(svg[aria-label="Save"])',
+    ],
+    "unsave_button": [
+        'svg[aria-label="Remove"]',
+        'svg[aria-label="Entfernen"]',  # German
+        'button[aria-label*="Remove" i]',
+        'div[role="button"]:has(svg[aria-label="Remove"])',
+    ],
+    "follow_button": [
+        'button:has-text("Follow")',
+        'button:has-text("Folgen")',  # German
+        'div[role="button"]:has-text("Follow")',
+        'div[role="button"]:has-text("Folgen")',
+    ],
+    "unfollow_button": [
+        'button:has-text("Following")',
+        'button:has-text("Abonniert")',  # German
+        'div[role="button"]:has-text("Following")',
+        'button:has-text("Unfollow")',
+        'button:has-text("Entfolgen")',  # German
+    ],
+    "comment_input": [
+        'textarea[aria-label*="Add a comment"]',
+        'textarea[placeholder*="Add a comment" i]',
+        'textarea[placeholder*="Kommentar hinzufügen" i]',  # German
+        'div[contenteditable="true"][aria-label*="comment" i]',
+    ],
+    "post_comment_button": [
+        'button:has-text("Post")',
+        'button:has-text("Kommentieren")',  # German
+        'div[role="button"]:has-text("Post")',
+    ],
+    "story_ring": [
+        'div[role="button"]:has(img)',
+        'canvas',  # Story ring canvas
+        'div[class*="story-ring"]',
+    ],
+    "dm_button": [
+        'svg[aria-label="Direct message"]',
+        'svg[aria-label="Direktnachricht"]',  # German
+        'button[aria-label*="Direct" i]',
     ],
 }
 

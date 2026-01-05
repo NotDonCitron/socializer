@@ -11,3 +11,6 @@ playwright>=1.43.0
 playwright-stealth>=2.0.0
 undetected-chromedriver>=3.5.0
 selenium>=4.0.0
+# AI dependencies for Phase 3
+openai>=1.0.0
+google-generativeai>=0.8.0

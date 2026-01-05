@@ -31,19 +31,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy package files
-COPY socializer/pyproject.toml ./socializer/
-COPY socializer-api/pyproject.toml ./socializer-api/
+# Copy application code
+COPY socializer/ ./socializer/
+COPY socializer-api/ ./socializer-api/
 
 # Install Python packages
 RUN pip install --no-cache-dir -e ./socializer/ -e ./socializer-api/
 
 # Install Playwright browsers
 RUN playwright install chromium --with-deps
-
-# Copy application code
-COPY socializer/ ./socializer/
-COPY socializer-api/ ./socializer-api/
 
 # Development stage
 FROM base as development

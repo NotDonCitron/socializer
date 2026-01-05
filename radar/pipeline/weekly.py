@@ -11,9 +11,9 @@ def week_key(dt: datetime) -> str:
 def render_weekly(posts: list[GeneratedPost], output_dir: str = "content", lang: str = "en") -> str:
     now = datetime.utcnow()
     key = week_key(now)
-    out = Path(output_dir) / lang / "weekly"
+    out = Path(output_dir) / lang
     out.mkdir(parents=True, exist_ok=True)
-    file = out / f"{key}.md"
+    file = out / f"weekly_digest.md"
 
     top = sorted(posts, key=lambda p: p.impact_score, reverse=True)[:20]
     lines = [

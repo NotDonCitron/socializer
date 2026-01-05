@@ -9,6 +9,9 @@ from radar.sources import github, webpage_diff
 from radar.pipeline import score, generate, render, weekly
 from radar.llm.mock import MockLLM
 from radar.llm.gemini_stub import GeminiLLM
+from radar.engagement_models import EngagementAction, EngagementActionType, EngagementPlatform, EngagementBatch
+from radar.engagement import EngagementManager
+from radar.browser import BrowserManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -73,6 +76,269 @@ def get_llm():
 def version():
     """Print version."""
     print("0.1.0")
+
+# Engagement commands
+engage_app = typer.Typer()
+app.add_typer(engage_app, name="engage", help="Social media engagement commands")
+
+@engage_app.command()
+def instagram_like(
+    url: str = typer.Argument(..., help="Instagram post URL"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Like an Instagram post."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_instagram(manager, "ig_session"):
+                print("[red]Failed to initialize Instagram automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to Instagram...")
+            if not engagement_manager.instagram_automator.login("username", "password", headless=headless):
+                print(f"[red]Login failed: {engagement_manager.instagram_automator.last_error}[/red]")
+                return
+
+            print(f"Liking post: {url}")
+            result = engagement_manager.instagram_automator.like_post(url)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def instagram_follow(
+    username: str = typer.Argument(..., help="Instagram username"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Follow an Instagram user."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_instagram(manager, "ig_session"):
+                print("[red]Failed to initialize Instagram automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to Instagram...")
+            if not engagement_manager.instagram_automator.login("username", "password", headless=headless):
+                print(f"[red]Login failed: {engagement_manager.instagram_automator.last_error}[/red]")
+                return
+
+            print(f"Following user: {username}")
+            result = engagement_manager.instagram_automator.follow_user(username)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def instagram_comment(
+    url: str = typer.Argument(..., help="Instagram post URL"),
+    text: str = typer.Argument(..., help="Comment text"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Comment on an Instagram post."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_instagram(manager, "ig_session"):
+                print("[red]Failed to initialize Instagram automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to Instagram...")
+            if not engagement_manager.instagram_automator.login("username", "password", headless=headless):
+                print(f"[red]Login failed: {engagement_manager.instagram_automator.last_error}[/red]")
+                return
+
+            print(f"Commenting on post: {url}")
+            result = engagement_manager.instagram_automator.comment_on_post(url, text)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def tiktok_like(
+    url: str = typer.Argument(..., help="TikTok video URL"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Like a TikTok video."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_tiktok(manager, "tiktok_session"):
+                print("[red]Failed to initialize TikTok automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to TikTok...")
+            if not engagement_manager.tiktok_automator.login(headless=headless):
+                print(f"[red]Login failed: {engagement_manager.tiktok_automator.last_error}[/red]")
+                return
+
+            print(f"Liking video: {url}")
+            result = engagement_manager.tiktok_automator.like_video(url)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def tiktok_follow(
+    username: str = typer.Argument(..., help="TikTok username"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Follow a TikTok creator."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_tiktok(manager, "tiktok_session"):
+                print("[red]Failed to initialize TikTok automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to TikTok...")
+            if not engagement_manager.tiktok_automator.login(headless=headless):
+                print(f"[red]Login failed: {engagement_manager.tiktok_automator.last_error}[/red]")
+                return
+
+            print(f"Following creator: {username}")
+            result = engagement_manager.tiktok_automator.follow_creator(username)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def tiktok_comment(
+    url: str = typer.Argument(..., help="TikTok video URL"),
+    text: str = typer.Argument(..., help="Comment text"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Comment on a TikTok video."""
+    try:
+        with BrowserManager() as manager:
+            engagement_manager = EngagementManager()
+            if not engagement_manager.initialize_tiktok(manager, "tiktok_session"):
+                print("[red]Failed to initialize TikTok automator[/red]")
+                return
+
+            # Login first
+            print("Logging in to TikTok...")
+            if not engagement_manager.tiktok_automator.login(headless=headless):
+                print(f"[red]Login failed: {engagement_manager.tiktok_automator.last_error}[/red]")
+                return
+
+            print(f"Commenting on video: {url}")
+            result = engagement_manager.tiktok_automator.comment_on_video(url, text)
+
+            if result.success:
+                print(f"[green] Success: {result.message}[/green]")
+            else:
+                print(f"[red] Failed: {result.message}[/red]")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
+
+@engage_app.command()
+def batch(
+    config: str = typer.Argument(..., help="Batch configuration file (JSON)"),
+    headless: bool = typer.Option(True, help="Run in headless mode")
+):
+    """Execute a batch of engagement actions from a configuration file."""
+    try:
+        import json
+        from radar.engagement_models import EngagementBatch
+
+        # Load batch configuration
+        with open(config, 'r') as f:
+            batch_config = json.load(f)
+
+        # Create engagement manager
+        engagement_manager = EngagementManager()
+
+        # Initialize appropriate automator based on platform
+        platform = batch_config.get('platform', 'instagram')
+        with BrowserManager() as manager:
+            if platform == 'instagram':
+                if not engagement_manager.initialize_instagram(manager, "ig_session"):
+                    print("[red]Failed to initialize Instagram automator[/red]")
+                    return
+                # Login
+                if not engagement_manager.instagram_automator.login("username", "password", headless=headless):
+                    print(f"[red]Login failed: {engagement_manager.instagram_automator.last_error}[/red]")
+                    return
+            elif platform == 'tiktok':
+                if not engagement_manager.initialize_tiktok(manager, "tiktok_session"):
+                    print("[red]Failed to initialize TikTok automator[/red]")
+                    return
+                # Login
+                if not engagement_manager.tiktok_automator.login(headless=headless):
+                    print(f"[red]Login failed: {engagement_manager.tiktok_automator.last_error}[/red]")
+                    return
+            else:
+                print(f"[red]Unsupported platform: {platform}[/red]")
+                return
+
+            # Create batch
+            actions = []
+            for action_config in batch_config.get('actions', []):
+                action_type = EngagementActionType[action_config['type'].upper()]
+                platform_enum = EngagementPlatform[platform.upper()]
+
+                action = EngagementAction(
+                    action_type=action_type,
+                    platform=platform_enum,
+                    target_identifier=action_config['target'],
+                    metadata=action_config.get('metadata', {})
+                )
+                actions.append(action)
+
+            batch = EngagementBatch(
+                actions=actions,
+                platform=EngagementPlatform[platform.upper()],
+                settings=batch_config.get('settings', {})
+            )
+
+            # Execute batch
+            print(f"Executing batch with {len(batch.actions)} actions...")
+            results = engagement_manager.execute_batch(batch)
+
+            # Print summary
+            successful = sum(1 for r in results if r.success)
+            print(f"\n[bold]Batch Results:[/bold] {successful}/{len(results)} successful")
+
+            for i, result in enumerate(results, 1):
+                status = "[green][/green]" if result.success else "[red][/green]"
+                print(f"{status} Action {i}: {result.action.action_type.value} on {result.action.target_identifier}")
+                if not result.success:
+                    print(f"   Error: {result.message}")
+
+    except Exception as e:
+        print(f"[red]Error: {e}[/red]")
 
 @app.command()
 def run(stack_path: str = "stack.yaml"):

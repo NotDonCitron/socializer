@@ -7,6 +7,7 @@ import os
 from typing import Any, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from . import db
@@ -14,6 +15,14 @@ from .scheduler.schedule import schedule_approved_content
 from .settings import get_settings
 
 app = FastAPI(title="Socializer Backend", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def require_auth(authorization: Optional[str] = Header(None)) -> None:
