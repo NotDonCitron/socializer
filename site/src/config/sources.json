@@ -1,0 +1,12 @@
+{
+  "github_repos": [
+    { "owner": "langchain-ai", "repo": "langchain", "category": "Frameworks" },
+    { "owner": "NotDonCitron", "repo": "V-bernommenKanban", "category": "Internal" },
+    { "owner": "model-context-protocol", "repo": "specification", "category": "Protocol" },
+    { "owner": "tiangolo", "repo": "fastapi", "category": "API" },
+    { "owner": "openai", "repo": "openai-python", "category": "AI SDK" },
+    { "owner": "anthropics", "repo": "anthropic-sdk-python", "category": "AI SDK" },
+    { "owner": "google-gemini", "repo": "generative-ai-python", "category": "AI SDK" },
+    { "owner": "VibeKanban", "repo": "vibe-kanban", "category": "Tools" }
+  ]
+}

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["radar"]
+
+[project]
+name = "ai-agent-radar"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "pydantic>=2.7.0",
+    "PyYAML>=6.0.1",
+    "jinja2>=3.1.4",
+    "typer>=0.12.3",
+    "python-dateutil>=2.9.0.post0",
+    "rich>=13.7.1",
+    "playwright-stealth>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "pytest>=8.0.0",
+    "pytest-playwright>=0.5.0",
+]
+
+[project.scripts]
+radar = "radar.cli:app"
+
+[tool.ruff]
+line-length = 100

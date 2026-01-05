@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
@@ -35,6 +36,7 @@ ENV/
 .opencode/
 .gemini/commands/loop.toml.backup
 .claude/
+.DS_Store
 
 # Databases
 *.sqlite
@@ -46,6 +48,7 @@ ENV/
 *_session/
 ig_session/
 tiktok_session/
+downloaded_files/
 
 # Logs
 *.log
@@ -56,6 +59,7 @@ debug*.log
 export/
 content/
 debug_shots/
+data/
 
 # Documentation (generated/temporary)
 *_TEST_*.md
@@ -95,3 +99,16 @@ test_*.py
 
 # Backups
 *.backup
+
+# Web/Site artifacts
+site/node_modules/
+site/dist/
+site/src/content/
+site/.astro/
+
+# Debug artifacts
+error_upload_debug_*.png
+socializer-api.zip
+
+# Keep manual login screenshots if needed, but usually ignore
+# tiktok_sb_login.png

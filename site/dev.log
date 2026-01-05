@@ -1,0 +1,19 @@
+
+> ai-agent-radar-site@0.0.1 dev
+> astro dev
+
+11:47:58 [types] Generated 0ms
+
+Auto-generating collections for folders in "src/content/" that are not defined as collections.
+This is deprecated, so you should define these collections yourself in "src/content.config.ts".
+The following collections have been auto-generated: de, en
+
+11:47:58 [content] Syncing content
+11:47:58 [content] Synced content
+
+ astro  v5.16.6 ready in 71 ms
+
+┃ Local    http://localhost:4321/socializer
+┃ Network  use --host to expose
+
+11:47:58 watching for file changes...

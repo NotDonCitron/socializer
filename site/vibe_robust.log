@@ -1,0 +1,17 @@
+Starting vibe-kanban v0.0.143...
+[2m2026-01-03T10:50:50.148876Z[0m [32m INFO[0m [2mexecutors::profile[0m[2m:[0m No user profiles.json found, using defaults only
+[2m2026-01-03T10:50:50.156631Z[0m [32m INFO[0m [2mlocal_deployment[0m[2m:[0m Starting orphaned image cleanup...
+[2m2026-01-03T10:50:50.156707Z[0m [32m INFO[0m [2mservices::services::oauth_credentials[0m[2m:[0m OAuth credentials backend: file
+[2m2026-01-03T10:50:50.162090Z[0m [32m INFO[0m [2mlocal_deployment[0m[2m:[0m Remote client initialized with URL: https://api.vibekanban.com
+[2m2026-01-03T10:50:50.163073Z[0m [32m INFO[0m [2mlocal_deployment::container[0m[2m:[0m Starting periodic workspace cleanup...
+[2m2026-01-03T10:50:50.164434Z[0m [32m INFO[0m [2mservices::services::pr_monitor[0m[2m:[0m Starting PR monitoring service with interval 60s
+[2m2026-01-03T10:50:50.171005Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m Starting file search cache warming...
+[2m2026-01-03T10:50:50.171769Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m Warming cache for 1 repositories: ["/home/kek/Schreibtisch/portfolio-website"]
+[2m2026-01-03T10:50:50.171940Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m Setup file watcher for repo: "/home/kek/Schreibtisch/portfolio-website"
+[2m2026-01-03T10:50:50.171965Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m Building cache for repo: "/home/kek/Schreibtisch/portfolio-website"
+[2m2026-01-03T10:50:50.171984Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m File search cache warming completed
+[2m2026-01-03T10:50:50.177477Z[0m [32m INFO[0m [2mserver[0m[2m:[0m No PORT environment variable set, using port 0 for auto-assignment
+[2m2026-01-03T10:50:50.177770Z[0m [32m INFO[0m [2mserver[0m[2m:[0m Server running on http://127.0.0.1:37123
+[2m2026-01-03T10:50:50.177783Z[0m [32m INFO[0m [2mserver[0m[2m:[0m Opening browser...
+[2m2026-01-03T10:50:56.016855Z[0m [32m INFO[0m [2mservices::services::file_search_cache[0m[2m:[0m Successfully cached repo: "/home/kek/Schreibtisch/portfolio-website"
+[2m2026-01-03T10:52:29.886039Z[0m [32m INFO[0m [2mlocal_deployment::container[0m[2m:[0m Killing all running processes

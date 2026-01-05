@@ -1,0 +1,45 @@
+---
+export async function getStaticPaths() {
+  const pages = import.meta.glob('../content/**/*.md', { eager: true });
+  
+  return Object.values(pages).map((page: any) => {
+    // Remove '/src/content' and file extension to get the slug
+    const permalink = page.frontmatter.permalink || page.url;
+    
+    // Fallback slug generation if permalink is missing
+    const cleanPath = permalink ? permalink.replace(/^\//, '').replace(/\/$/, '') : '404';
+
+    return {
+      params: { slug: cleanPath },
+      props: { page },
+    };
+  });
+}
+
+const { page } = Astro.props;
+const { Content } = page;
+const { title } = page.frontmatter;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <style>
+      body { max-width: 800px; margin: 0 auto; padding: 2rem; font-family: system-ui; line-height: 1.6; }
+      img { max-width: 100%; height: auto; }
+      pre { background: #f4f4f5; padding: 1rem; overflow-x: auto; border-radius: 4px; }
+      a { color: #2563eb; }
+    </style>
+  </head>
+  <body>
+    <nav>
+        <a href="/">← Back to Dashboard</a>
+    </nav>
+    <article>
+        <h1>{title}</h1>
+        <Content />
+    </article>
+  </body>
+</html>
