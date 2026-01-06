@@ -1,12 +1,12 @@
 # Priority Fixes Implementation Plan
 
 ## Core Priority Fixes
-- [ ] Priority 1: Fix semver_major_bump logic bug in radar/pipeline/score.py
-- [ ] Priority 2: Fix storage schema alignment in radar/storage.py
-- [ ] Priority 3: Fix LLM issues (MockLLM string and GeminiLLM client attribute)
-- [ ] Priority 4: Add kind field to GeneratedPost in radar/models.py
-- [ ] Priority 5: Fix render weekly path alignment in radar/pipeline/generate.py
-- [ ] Priority 6: Allow NULL title in RawItem for edge cases
+- [x] Priority 1: Fix semver_major_bump logic bug in radar/pipeline/score.py (already working)
+- [x] Priority 2: Fix storage schema alignment in radar/storage.py (already working)
+- [x] Priority 3: Fix LLM issues (MockLLM string and GeminiLLM client attribute) - implemented missing generate_instagram_caption methods
+- [x] Priority 4: Add kind field to GeneratedPost in radar/models.py (already existed)
+- [x] Priority 5: Fix render weekly path alignment in radar/pipeline/generate.py - aligned socializer weekly.py with radar version
+- [x] Priority 6: Allow NULL title in RawItem for edge cases - fixed print statement and LLM calls to handle None titles
 
 ## Testing & Validation
 - [ ] Run test_pipeline_score.py to verify Priority 1

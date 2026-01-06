@@ -112,3 +112,10 @@ socializer-api.zip
 
 # Keep manual login screenshots if needed, but usually ignore
 # tiktok_sb_login.png
+
+ig_session/
+tiktok_session/
+venv/
+__pycache__/
+*.log
+external_repos/

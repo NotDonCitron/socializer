@@ -1,0 +1,22 @@
+{
+  "name": "ai-agent-radar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "format": "npm run format:code",
+    "format:code": "prettier --write \"**/*.{js,ts,json,md,astro}\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "dependencies": {
+    "@utcp/code-mode": "^1.1.0",
+    "@utcp/dotenv-loader": "^1.1.0",
+    "@utcp/http": "^1.1.0",
+    "claude-code": "^1.0.0"
+  }
+}

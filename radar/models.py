@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 from typing import Any, Literal, List, Dict, Optional
 
 class SourceConfig(BaseModel):
@@ -9,6 +9,15 @@ class SourceConfig(BaseModel):
     url: Optional[HttpUrl] = None
     tags: List[str] = Field(default_factory=list)
     priority: int = 3
+    
+    @model_validator(mode='after')
+    def validate_source_type_fields(self) -> 'SourceConfig':
+        """Validate that required fields are present based on source type."""
+        if self.type == "github_releases" and not self.repo:
+            raise ValueError("repo is required for github_releases type")
+        if self.type == "webpage_diff" and not self.url:
+            raise ValueError("url is required for webpage_diff type")
+        return self
 
 class PostingConfig(BaseModel):
     generate_de_if_impact_gte: int = 70
@@ -21,7 +30,7 @@ class StackConfig(BaseModel):
     timezone: str = "UTC"
     languages: List[str] = Field(default_factory=lambda: ["en"])
     posting: PostingConfig = Field(default_factory=PostingConfig)
-    sources: List[SourceConfig]
+    sources: List[SourceConfig] = Field(..., min_length=1)
 
 class RawItem(BaseModel):
     source_id: str
@@ -59,4 +68,4 @@ class GeneratedPost(BaseModel):
     medium_de: Optional[str] = None
     action_items: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
-    confidence: str = "low"
+    confidence: Literal["low", "medium", "high"] = "medium"

@@ -2,6 +2,8 @@ fastapi>=0.110.0
 uvicorn>=0.23.0
 pydantic>=2.6.0
 httpx>=0.27.0
+aiohttp>=3.9.0
+websockets>=12.0
 PyYAML>=6.0.1
 jinja2>=3.1.4
 typer>=0.12.3
@@ -14,3 +16,5 @@ selenium>=4.0.0
 # AI dependencies for Phase 3
 openai>=1.0.0
 google-generativeai>=0.8.0
+ruff
+isort

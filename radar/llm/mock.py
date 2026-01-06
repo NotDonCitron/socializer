@@ -1,5 +1,5 @@
 from radar.llm.base import LLMClient
-from typing import List
+from typing import List, Dict
 
 class MockLLM(LLMClient):
     async def generate_post_json(self, *, raw_text: str, title: str, url: str, impact_score: int, flags: List[str], lang: str) -> dict:
@@ -22,3 +22,21 @@ class MockLLM(LLMClient):
             "sources": [url],
             "confidence": "low",
         }
+
+    async def generate_instagram_caption(self, *, vision_analysis: Dict, custom_instructions: str = "", lang: str = "en") -> Dict[str, str]:
+        """Generate Instagram caption and hashtags based on vision analysis."""
+        # Mock implementation that returns consistent test data
+        if lang == "en":
+            return {
+                "caption": "Beautiful moment captured! #photo",
+                "hashtags": "photo beautiful moment life photography",
+                "mood_match": "excellent",
+                "engagement_potential": "high"
+            }
+        else:
+            return {
+                "caption": "Schoner Moment eingefangen! #foto",
+                "hashtags": "foto schon moment leben fotografie",
+                "mood_match": "ausgezeichnet",
+                "engagement_potential": "hoch"
+            }

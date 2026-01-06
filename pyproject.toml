@@ -2,8 +2,10 @@
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["radar"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["radar*"]
+exclude = ["site*", "data*", "plans*", "static*", "export*", "custom*", "content*", "ssh_chat*", "conductor*", "ig_session*", "socializer*", "test_session*", "tiktok_session*", "content_to_post*", "project_knowledge*", "tests*", "examples*", "scripts*"]
 
 [project]
 name = "ai-agent-radar"
@@ -23,6 +25,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ruff>=0.4.0",
+    "isort>=5.13.2",
     "mypy>=1.10.0",
     "pytest>=8.0.0",
     "pytest-playwright>=0.5.0",
@@ -33,3 +36,12 @@ radar = "radar.cli:app"
 
 [tool.ruff]
 line-length = 100
+select = ["E", "F", "I"]
+
+[tool.ruff.isort]
+known-first-party = ["radar"]
+known-local-folder = ["tests"]
+sections = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+order-by-type = false
+relative-imports-order = "closest-to-furthest"
+combine-as-imports = true

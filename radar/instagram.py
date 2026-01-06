@@ -1,21 +1,56 @@
-import os
-import time
-import datetime
+"""
+Instagram automation module with advanced anti-detection and retry logic.
+"""
+from typing import Optional
+import random
 from playwright.sync_api import Page, BrowserContext, ElementHandle
 from radar.browser import BrowserManager
-from radar.selectors import SelectorStrategy, INSTAGRAM_SELECTORS
+from radar.element_selectors import SelectorStrategy, INSTAGRAM_SELECTORS
 from radar.session_manager import load_playwright_cookies
 from radar.engagement_models import EngagementAction, EngagementResult, EngagementActionType, EngagementPlatform, EngagementStatus
+from radar.session_orchestrator import SessionOrchestrator, SessionContext, EngagementPlatform as OrchestratorPlatform
 from radar.human_behavior import human_delay, human_click, wait_human
+import time
+import os
+import datetime
+from collections import deque
 
 class InstagramAutomator:
-    def __init__(self, manager: BrowserManager, user_data_dir: str):
-        self.manager = manager
-        self.user_data_dir = user_data_dir
-        self.context: BrowserContext = None
+    """
+    Instagram upload automation with anti-detection measures.
+
+    Features:
+    - Human-like interaction patterns
+    - Multi-strategy selectors with fallbacks
+    - Retry logic with exponential backoff
+    - Session validation and shadowban detection
+    - Integration with SessionOrchestrator for multi-account support
+    """
+
+    def __init__(self, session_context: Optional[SessionContext] = None, account_id: Optional[str] = None):
+        """
+        Initialize Instagram automator.
+
+        Args:
+            session_context: SessionContext from SessionOrchestrator (preferred)
+            account_id: Account ID for legacy compatibility
+        """
+        self.session_context = session_context
+        self.account_id = account_id or (session_context.account_id if session_context else None)
+        self.context: BrowserContext = session_context.browser_context if session_context else None
         self.page: Page = None
         self.last_error: str = None
-        self.debug = os.environ.get("DEBUG") == "1"
+        self.upload_attempts: int = 0
+        self.max_retries: int = 3
+        self.debug = os.environ.get("DEBUG", "0") == "1"
+        self._action_timestamps = deque(maxlen=90)  # soft per-minute guard
+
+        # Legacy support - create browser manager if no session context
+        if not session_context:
+            self.manager = BrowserManager()
+            self.user_data_dir = f"data/sessions/instagram/{account_id}" if account_id else "data/instagram_session"
+            os.makedirs(self.user_data_dir, exist_ok=True)
+
         if self.debug:
             os.makedirs("debug_shots", exist_ok=True)
 
@@ -82,14 +117,23 @@ class InstagramAutomator:
             # Silent fail for the handler to avoid crashing the main loop
             pass
 
-    def login(self, username, password, headless=True, timeout=45000):
+    def login(self, username=None, password=None, headless=True, timeout=45000):
         """
-        Attempts to log in to Instagram.
-        Returns True if login appears successful or already logged in.
+        Initialize browser and check login status.
+
+        When using SessionOrchestrator, the session context is already set up.
+        This method validates the existing session or provides guidance for manual login.
         """
         self.last_error = None
+
+        # If using session orchestrator, context is already available
+        if self.session_context:
+            self.context = self.session_context.browser_context
+            # Update activity timestamp
+            self.session_context.update_activity()
+
+        # Legacy support - create browser context if not using orchestrator
         if not self.context:
-            # For Video Uploads, Desktop view is often more reliable/stable
             self.context = self.manager.launch_persistent_context(
                 self.user_data_dir,
                 headless=headless,
@@ -114,54 +158,48 @@ class InstagramAutomator:
 
             # Auto-close new tabs/windows that might be popups or redirects
             self.context.on("page", self._handle_new_page)
-        
-        self.page = self.manager.new_page(self.context, stealth=True)
-        
+
+        # Create page if not exists
+        if not self.page:
+            self.page = self.manager.new_page(self.context, stealth=True)
+
         try:
-            self._debug_log("Navigating to Instagram Explore")
-            # Using /explore to avoid some Home page popups/redirects
+            print("Browser context launched. Navigating to Instagram...")
             self.page.goto("https://www.instagram.com/explore/", wait_until="domcontentloaded", timeout=timeout)
-            self.page.wait_for_timeout(5000) # Give it a few seconds to settle
+            wait_human(self.page, 'navigate')
 
             # Check for Facebook redirect (Consumer rights/Contract cancel pages)
             if "facebook.com" in self.page.url:
                 self._debug_log(f"Detected Facebook redirect ({self.page.url}). Forcing return to Instagram...")
                 self.page.goto("https://www.instagram.com/explore/", wait_until="domcontentloaded", timeout=timeout)
-                self.page.wait_for_timeout(3000)
+                wait_human(self.page, 'navigate')
 
-        except Exception as e:
-            self.last_error = f"Navigation failed: {e}"
-            return False
-        
-        # Check if we are already logged in
-        if "login" not in self.page.url:
-            self.handle_popups()
-            return True
-            
-        # If redirect to login
-        try:
-            self.page.wait_for_selector('input[name="username"]', timeout=5000)
-            self.page.fill('input[name="username"]', username)
-            self.page.fill('input[name="password"]', password)
-            self.page.click('button[type="submit"]')
-            
-            self.page.wait_for_navigation(wait_until="networkidle", timeout=timeout)
-            
+            # Check if we are already logged in
             if "login" not in self.page.url:
                 self.handle_popups()
+                # Update session persistence if using orchestrator
+                if self.session_context and self.session_context.session_data:
+                    from radar.session_persistence import SessionPersistence
+                    persistence = SessionPersistence()
+                    persistence.update_login_status(self.account_id, True, True)
                 return True
-                
-            # Check for error messages
-            alert = self.page.query_selector('div[role="alert"]')
-            if alert:
-                self.last_error = alert.inner_text()
-            else:
-                self.last_error = "Login failed."
-                
+
+            print(f"Session invalid - redirected to login page")
+            print("💡 TIP: Run 'python -m radar.auth_bridge' to log in interactively with SeleniumBase UC Mode.")
+            # Update session persistence if using orchestrator
+            if self.session_context and self.session_context.session_data:
+                from radar.session_persistence import SessionPersistence
+                persistence = SessionPersistence()
+                persistence.update_login_status(self.account_id, False, False)
+            return False
+
         except Exception as e:
-            self.last_error = f"Login failed: {e}"
-            
-        return False
+            self.last_error = f"Login navigation failed: {e}"
+            print(self.last_error)
+            # Mark session error if using orchestrator
+            if self.session_context:
+                self.session_context.mark_error()
+            return False
 
     def handle_popups(self, timeout=5000):
         """Closes common Instagram popups."""
@@ -169,8 +207,17 @@ class InstagramAutomator:
             "text=Not Now", "text=Nicht jetzt", 
             "button:has-text('Not Now')", "button:has-text('Nicht jetzt')",
             "text=Abbrechen", "text=Cancel",
+            # Cookie/consent variants seen across regions
             "button:has-text('Decline optional cookies')",
             "button:has-text('Only allow essential cookies')",
+            "button:has-text('Allow essential cookies')",
+            "button:has-text('Allow all cookies')",
+            "button:has-text('Accept all')",
+            "button:has-text('Accept All')",
+            "button:has-text('Accept')",
+            "button:has-text('Reject all')",
+            "button:has-text('Reject All')",
+            "text=Allow all cookies", "text=Alle Cookies zulassen",
             "button:has-text('Got it')", "button:has-text('OK')",
             "button:has-text('Next')", "button:has-text('Weiter')", # Sometimes these are "feature discovery" next buttons
             "[aria-label='Close']", "[aria-label='Schließen']",
@@ -180,7 +227,15 @@ class InstagramAutomator:
             "div[role='dialog'] button:has-text('OK')", # Generic dialog OK
             "div[role='dialog'] button:has-text('Done')",
             "text=New! separate tabs", # Feature discovery
-            "text=Neu! separate Tabs"
+            "text=Neu! separate Tabs",
+            # Notification prompts
+            "button:has-text('Turn On')",
+            "button:has-text('Turn on notifications')",
+            "button:has-text('Enable notifications')",
+            "button:has-text('Maybe later')",
+            "button:has-text('Maybe Later')",
+            "text=Turn on notifications",
+            "text=Benachrichtigungen aktivieren",
         ]
         
         for selector in popups:
@@ -641,6 +696,9 @@ class InstagramAutomator:
     def _execute_engagement_action(self, action_type: EngagementActionType, target_identifier: str,
                                  metadata: dict = None) -> EngagementResult:
         """Execute an engagement action with proper tracking and error handling."""
+        # Basic rate limiting to avoid bursty behavior (GramAddict-style soft cap)
+        self._respect_rate_limits()
+
         action = EngagementAction(
             action_type=action_type,
             platform=EngagementPlatform.INSTAGRAM,
@@ -1178,3 +1236,24 @@ class InstagramAutomator:
             post_url,
             {"method": method}
         )
+
+    def _respect_rate_limits(self, per_minute: int = 20, min_delay: float = 1.5, max_delay: float = 4.0) -> None:
+        """
+        Soft rate limiter to spread actions and reduce detection risk.
+        """
+        now = time.monotonic()
+        # Ensure a small random pause between actions
+        pause = random.uniform(min_delay, max_delay)
+        time.sleep(pause)
+
+        # Enforce per-minute window if close to limits
+        recent = [t for t in self._action_timestamps if now - t < 60]
+        if len(recent) >= per_minute:
+            wait_for = 60 - (now - recent[0])
+            if wait_for > 0:
+                time.sleep(wait_for)
+
+        self._action_timestamps.append(time.monotonic())
+        # Trim old timestamps to keep memory small
+        while self._action_timestamps and now - self._action_timestamps[0] > 60:
+            self._action_timestamps.popleft()

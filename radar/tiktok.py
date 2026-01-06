@@ -1,42 +1,72 @@
 """
-TikTok automation module with advanced anti-detection and retry logic.
+ TikTok automation module with advanced anti-detection and retry logic.
 """
-from playwright.sync_api import Page, BrowserContext
-from radar.browser import BrowserManager
-from radar.selectors import SelectorStrategy, TIKTOK_SELECTORS
-from radar.human_behavior import human_delay, human_type, human_click, wait_human
-from radar.session_manager import validate_tiktok_session, load_playwright_cookies
-from radar.engagement_models import EngagementAction, EngagementResult, EngagementActionType, EngagementPlatform, EngagementStatus
+from typing import Optional
+import random
 import time
 import os
 import datetime
+from collections import deque
+from playwright.sync_api import Page, BrowserContext
+from radar.browser import BrowserManager
+from radar.element_selectors import SelectorStrategy, TIKTOK_SELECTORS
+from radar.human_behavior import human_delay, human_type, human_click, wait_human
+from radar.session_manager import validate_tiktok_session, load_playwright_cookies
+from radar.engagement_models import EngagementAction, EngagementResult, EngagementActionType, EngagementPlatform, EngagementStatus
+from radar.session_orchestrator import SessionOrchestrator, SessionContext, EngagementPlatform as OrchestratorPlatform
 
 class TikTokAutomator:
     """
     TikTok upload automation with anti-detection measures.
-    
+
     Features:
     - Human-like interaction patterns
     - Multi-strategy selectors with fallbacks
     - Retry logic with exponential backoff
     - Session validation and shadowban detection
+    - Integration with SessionOrchestrator for multi-account support
     """
-    
-    def __init__(self, manager: BrowserManager, user_data_dir: str):
-        self.manager = manager
-        self.user_data_dir = user_data_dir
-        self.context: BrowserContext = None
+
+    def __init__(self, session_context: Optional[SessionContext] = None, account_id: Optional[str] = None):
+        """
+        Initialize TikTok automator.
+
+        Args:
+            session_context: SessionContext from SessionOrchestrator (preferred)
+            account_id: Account ID for legacy compatibility
+        """
+        self.session_context = session_context
+        self.account_id = account_id or (session_context.account_id if session_context else None)
+        self.context: BrowserContext = session_context.browser_context if session_context else None
         self.page: Page = None
         self.last_error: str = None
         self.upload_attempts: int = 0
         self.max_retries: int = 3
         self.debug = os.environ.get("DEBUG", "0") == "1"
+        self._action_timestamps = deque(maxlen=90)  # soft per-minute guard
+
+        # Legacy support - create browser manager if no session context
+        if not session_context:
+            self.manager = BrowserManager()
+            self.user_data_dir = f"data/sessions/tiktok/{account_id}" if account_id else "data/tiktok_session"
+            os.makedirs(self.user_data_dir, exist_ok=True)
 
     def login(self, username=None, password=None, headless=False, timeout=30000):
         """
         Initialize browser and check login status.
+
+        When using SessionOrchestrator, the session context is already set up.
+        This method validates the existing session or provides guidance for manual login.
         """
         self.last_error = None
+
+        # If using session orchestrator, context is already available
+        if self.session_context:
+            self.context = self.session_context.browser_context
+            # Update activity timestamp
+            self.session_context.update_activity()
+
+        # Legacy support - create browser context if not using orchestrator
         if not self.context:
             self.context = self.manager.launch_persistent_context(
                 self.user_data_dir,
@@ -45,26 +75,41 @@ class TikTokAutomator:
             )
             # Try to load SeleniumBase cookies if available
             load_playwright_cookies(self.context)
-        
-        self.page = self.manager.new_page(self.context, stealth=True)
-        
+
+        # Create page if not exists
+        if not self.page:
+            self.page = self.manager.new_page(self.context, stealth=True)
+
         try:
             print("Browser context launched. Navigating to TikTok...")
             self.page.goto("https://www.tiktok.com/upload", wait_until="domcontentloaded", timeout=timeout)
             wait_human(self.page, 'navigate')
-            
+
             validation = validate_tiktok_session(self.page)
             if validation['valid']:
                 print(f"Session valid: {validation['reason']}")
+                # Update session persistence if using orchestrator
+                if self.session_context and self.session_context.session_data:
+                    from radar.session_persistence import SessionPersistence
+                    persistence = SessionPersistence()
+                    persistence.update_login_status(self.account_id, True, True)
                 return True
-            
+
             print(f"Session invalid: {validation['reason']}")
             print("💡 TIP: Run 'python -m radar.auth_bridge' to log in interactively with SeleniumBase UC Mode.")
+            # Update session persistence if using orchestrator
+            if self.session_context and self.session_context.session_data:
+                from radar.session_persistence import SessionPersistence
+                persistence = SessionPersistence()
+                persistence.update_login_status(self.account_id, False, False)
             return False
-            
+
         except Exception as e:
             self.last_error = f"Login navigation failed: {e}"
             print(self.last_error)
+            # Mark session error if using orchestrator
+            if self.session_context:
+                self.session_context.mark_error()
             return False
 
     def enable_monitoring(self):
@@ -369,6 +414,9 @@ class TikTokAutomator:
     def _execute_engagement_action(self, action_type: EngagementActionType, target_identifier: str,
                                  metadata: dict = None) -> EngagementResult:
         """Execute an engagement action with proper tracking and error handling."""
+        # Basic rate limiting to avoid bursty behavior (GramAddict-style soft cap)
+        self._respect_rate_limits()
+
         action = EngagementAction(
             action_type=action_type,
             platform=EngagementPlatform.TIKTOK,
@@ -742,3 +790,24 @@ class TikTokAutomator:
             video_url,
             {"method": method}
         )
+
+    def _respect_rate_limits(self, per_minute: int = 20, min_delay: float = 1.5, max_delay: float = 4.0) -> None:
+        """
+        Soft rate limiter to spread actions and reduce detection risk.
+        """
+        now = time.monotonic()
+        # Ensure a small random pause between actions
+        pause = random.uniform(min_delay, max_delay)
+        time.sleep(pause)
+
+        # Enforce per-minute window if close to limits
+        recent = [t for t in self._action_timestamps if now - t < 60]
+        if len(recent) >= per_minute:
+            wait_for = 60 - (now - recent[0])
+            if wait_for > 0:
+                time.sleep(wait_for)
+
+        self._action_timestamps.append(time.monotonic())
+        # Trim old timestamps to keep memory small
+        while self._action_timestamps and now - self._action_timestamps[0] > 60:
+            self._action_timestamps.popleft()

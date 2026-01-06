@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Social Media Automation Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .stat-card {
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .health-healthy { color: #28a745; }
+        .health-slow { color: #ffc107; }
+        .health-blocked { color: #fd7e14; }
+        .health-down { color: #dc3545; }
+        .status-active { color: #28a745; }
+        .status-inactive { color: #6c757d; }
+        .status-banned { color: #dc3545; }
+        .status-suspended { color: #fd7e14; }
+        .status-quarantined { color: #ffc107; }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .session-card {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 10px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-3">
+                <h4 class="mb-4">
+                    <i class="fas fa-radar me-2"></i>
+                    Radar
+                </h4>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="#dashboard" data-page="dashboard">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="#accounts" data-page="accounts">
+                        <i class="fas fa-users me-2"></i>Accounts
+                    </a>
+                    <a class="nav-link" href="#proxies" data-page="proxies">
+                        <i class="fas fa-globe me-2"></i>Proxies
+                    </a>
+                    <a class="nav-link" href="#sessions" data-page="sessions">
+                        <i class="fas fa-desktop me-2"></i>Sessions
+                    </a>
+                    <a class="nav-link" href="#settings" data-page="settings">
+                        <i class="fas fa-cog me-2"></i>Settings
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 p-4">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page active">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+                        <div class="d-flex align-items-center">
+                            <span id="connection-status" class="badge bg-success me-2">
+                                <i class="fas fa-circle me-1"></i>Connected
+                            </span>
+                            <small class="text-muted" id="last-update">Last update: -</small>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">Accounts</h5>
+                                            <h2 id="total-accounts">-</h2>
+                                            <small id="active-accounts">-</small>
+                                        </div>
+                                        <i class="fas fa-users fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">Active Sessions</h5>
+                                            <h2 id="active-sessions">-</h2>
+                                            <small>Running now</small>
+                                        </div>
+                                        <i class="fas fa-play-circle fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">Proxies</h5>
+                                            <h2 id="total-proxies">-</h2>
+                                            <small id="healthy-proxies">-</small>
+                                        </div>
+                                        <i class="fas fa-globe fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-warning text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">Success Rate</h5>
+                                            <h2 id="avg-success-rate">-%</h2>
+                                            <small>Overall</small>
+                                        </div>
+                                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="activity-log" class="list-group list-group-flush">
+                                        <div class="text-center text-muted py-4">
+                                            <div class="loading"></div>
+                                            <div class="mt-2">Loading activity...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-server me-2"></i>System Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="system-status">
+                                        <div class="text-center">
+                                            <div class="loading"></div>
+                                            <div class="mt-2">Checking status...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accounts Page -->
+                <div id="accounts-page" class="page">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2><i class="fas fa-users me-2"></i>Accounts</h2>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+                            <i class="fas fa-plus me-1"></i>Add Account
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Account Pool</span>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" onclick="loadAccounts()">Refresh</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="accounts-table-container">
+                                <div class="text-center py-4">
+                                    <div class="loading"></div>
+                                    <div class="mt-2">Loading accounts...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proxies Page -->
+                <div id="proxies-page" class="page">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2><i class="fas fa-globe me-2"></i>Proxies</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProxyModal">
+                                <i class="fas fa-plus me-1"></i>Add Proxy
+                            </button>
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProviderModal">
+                                <i class="fas fa-plug me-1"></i>Add Provider
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Proxy Pool</span>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadProxies()">Refresh</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="proxies-table-container">
+                                        <div class="text-center py-4">
+                                            <div class="loading"></div>
+                                            <div class="mt-2">Loading proxies...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Proxy Providers</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="providers-list">
+                                        <div class="text-center py-2">
+                                            <div class="loading"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sessions Page -->
+                <div id="sessions-page" class="page">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2><i class="fas fa-desktop me-2"></i>Sessions</h2>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#startSessionModal">
+                            <i class="fas fa-play me-1"></i>Start Session
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Active Sessions</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="loadSessions()">Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="sessions-container">
+                                <div class="text-center py-4">
+                                    <div class="loading"></div>
+                                    <div class="mt-2">Loading sessions...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page">
+                    <h2><i class="fas fa-cog me-2"></i>Settings</h2>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>System Configuration</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Configuration options will be available here.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>API Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>API Base URL:</strong> <code>http://localhost:8000/api</code></p>
+                                    <p><strong>WebSocket:</strong> <code>ws://localhost:8000/ws</code></p>
+                                    <p><strong>Documentation:</strong> <a href="/docs" target="_blank">/docs</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Account Modal -->
+    <div class="modal fade" id="addAccountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-account-form">
+                        <div class="mb-3">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" name="platform" required>
+                                <option value="tiktok">TikTok</option>
+                                <option value="instagram">Instagram</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select" name="priority">
+                                <option value="secondary">Secondary</option>
+                                <option value="primary">Primary</option>
+                                <option value="tertiary">Tertiary</option>
+                                <option value="test">Test</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tags (comma-separated)</label>
+                            <input type="text" class="form-control" name="tags" placeholder="tag1, tag2, tag3">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addAccount()">Add Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Proxy Modal -->
+    <div class="modal fade" id="addProxyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Proxy</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-proxy-form">
+                        <div class="mb-3">
+                            <label class="form-label">Proxy URL</label>
+                            <input type="text" class="form-control" name="url" placeholder="http://user:pass@host:port" required>
+                            <div class="form-text">Format: protocol://username:password@host:port</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Provider (optional)</label>
+                            <input type="text" class="form-control" name="provider" placeholder="brightdata, smartproxy, oxylabs">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addProxy()">Add Proxy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Provider Modal -->
+    <div class="modal fade" id="addProviderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Proxy Provider</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-provider-form">
+                        <div class="mb-3">
+                            <label class="form-label">Provider Type</label>
+                            <select class="form-select" name="provider_type" required>
+                                <option value="brightdata">BrightData</option>
+                                <option value="smartproxy">SmartProxy</option>
+                                <option value="oxylabs">Oxylabs</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Provider Name</label>
+                            <input type="text" class="form-control" name="provider_name" placeholder="my-brightdata" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Username/Customer ID</label>
+                            <input type="text" class="form-control" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password/Zone Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Zone/Type</label>
+                            <input type="text" class="form-control" name="zone" placeholder="residential, datacenter, unblocker">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Default Country (optional)</label>
+                            <input type="text" class="form-control" name="country" placeholder="US, GB, DE">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addProvider()">Add Provider</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Session Modal -->
+    <div class="modal fade" id="startSessionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Start Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="start-session-form">
+                        <div class="mb-3">
+                            <label class="form-label">Account ID</label>
+                            <input type="text" class="form-control" name="account_id" placeholder="tiktok_username123" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Platform</label>
+                            <select class="form-select" name="platform" required>
+                                <option value="tiktok">TikTok</option>
+                                <option value="instagram">Instagram</option>
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="headless" id="headlessCheck">
+                            <label class="form-check-label" for="headlessCheck">
+                                Run in headless mode
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="startSession()">Start Session</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Main JavaScript -->
+    <script>
+        // Global state
+        let currentPage = 'dashboard';
+        let ws = null;
+        let reconnectInterval = null;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWebSocket();
+            initializeNavigation();
+            loadDashboardData();
+
+            // Auto-refresh data every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        });
+
+        // WebSocket connection
+        function initializeWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleWebSocketMessage(message);
+            };
+
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                // Attempt to reconnect
+                setTimeout(initializeWebSocket, 5000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connection-status');
+            if (connected) {
+                statusEl.className = 'badge bg-success me-2';
+                statusEl.innerHTML = '<i class="fas fa-circle me-1"></i>Connected';
+            } else {
+                statusEl.className = 'badge bg-danger me-2';
+                statusEl.innerHTML = '<i class="fas fa-circle me-1"></i>Disconnected';
+            }
+        }
+
+        function handleWebSocketMessage(message) {
+            console.log('WebSocket message:', message);
+
+            if (message.event === 'stats_update') {
+                updateDashboardStats(message.data);
+            } else if (message.event === 'account_created') {
+                addActivityItem(`Account ${message.data.account_id} created`);
+                if (currentPage === 'accounts') loadAccounts();
+            } else if (message.event === 'account_updated') {
+                addActivityItem(`Account ${message.data.account_id} updated`);
+                if (currentPage === 'accounts') loadAccounts();
+            } else if (message.event === 'account_deleted') {
+                addActivityItem(`Account ${message.data.account_id} deleted`);
+                if (currentPage === 'accounts') loadAccounts();
+            } else if (message.event === 'proxy_added') {
+                addActivityItem(`Proxy ${message.data.proxy_id} added`);
+                if (currentPage === 'proxies') loadProxies();
+            } else if (message.event === 'proxy_deleted') {
+                addActivityItem(`Proxy ${message.data.proxy_id} deleted`);
+                if (currentPage === 'proxies') loadProxies();
+            } else if (message.event === 'session_started') {
+                addActivityItem(`Session ${message.data.session_id} started`);
+                if (currentPage === 'sessions') loadSessions();
+            } else if (message.event === 'session_stopped') {
+                addActivityItem(`Session ${message.data.session_id} stopped`);
+                if (currentPage === 'sessions') loadSessions();
+            }
+        }
+
+        // Navigation
+        function initializeNavigation() {
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.getAttribute('data-page');
+                    switchPage(page);
+                });
+            });
+        }
+
+        function switchPage(page) {
+            // Update active nav link
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(`${page}-page`).classList.add('active');
+
+            currentPage = page;
+
+            // Load page data
+            switch(page) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'accounts':
+                    loadAccounts();
+                    break;
+                case 'proxies':
+                    loadProxies();
+                    loadProviders();
+                    break;
+                case 'sessions':
+                    loadSessions();
+                    break;
+            }
+        }
+
+        // Dashboard functions
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                updateDashboardStats(data);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function updateDashboardStats(data) {
+            // Update stats cards
+            document.getElementById('total-accounts').textContent = data.accounts.total_accounts || 0;
+            document.getElementById('active-accounts').textContent = `${data.accounts.active_accounts || 0} active`;
+            document.getElementById('active-sessions').textContent = data.sessions.active_count || 0;
+            document.getElementById('total-proxies').textContent = data.proxies.total_proxies || 0;
+            document.getElementById('healthy-proxies').textContent = `${data.proxies.healthy || 0} healthy`;
+
+            const avgSuccessRate = data.accounts.avg_success_rate || 0;
+            document.getElementById('avg-success-rate').textContent = `${(avgSuccessRate * 100).toFixed(1)}%`;
+
+            // Update last update time
+            document.getElementById('last-update').textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+
+            // Update system status
+            updateSystemStatus(data);
+        }
+
+        function updateSystemStatus(data) {
+            const statusEl = document.getElementById('system-status');
+            statusEl.innerHTML = `
+                <div class="mb-2">
+                    <strong>Database:</strong>
+                    <span class="badge bg-success ms-1">Connected</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Proxy Providers:</strong>
+                    <span class="badge bg-info ms-1">${Object.keys(data.proxies.providers || {}).length} configured</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Active Sessions:</strong>
+                    <span class="badge bg-success ms-1">${data.sessions.active_count || 0}</span>
+                </div>
+                <div>
+                    <strong>Quarantined Accounts:</strong>
+                    <span class="badge bg-warning ms-1">${data.accounts.quarantined_accounts || 0}</span>
+                </div>
+            `;
+        }
+
+        function addActivityItem(text) {
+            const activityLog = document.getElementById('activity-log');
+            const timestamp = new Date().toLocaleTimeString();
+
+            // Remove loading indicator if present
+            const loadingEl = activityLog.querySelector('.text-center');
+            if (loadingEl) {
+                loadingEl.remove();
+            }
+
+            // Add new activity item
+            const item = document.createElement('div');
+            item.className = 'list-group-item px-0';
+            item.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <small class="text-muted">${timestamp}</small>
+                </div>
+                <p class="mb-1">${text}</p>
+            `;
+
+            // Insert at top
+            if (activityLog.firstChild) {
+                activityLog.insertBefore(item, activityLog.firstChild);
+            } else {
+                activityLog.appendChild(item);
+            }
+
+            // Keep only last 20 items
+            while (activityLog.children.length > 20) {
+                activityLog.removeChild(activityLog.lastChild);
+            }
+        }
+
+        // Accounts functions
+        async function loadAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const data = await response.json();
+
+                const container = document.getElementById('accounts-table-container');
+                container.innerHTML = generateAccountsTable(data.accounts);
+            } catch (error) {
+                console.error('Error loading accounts:', error);
+                document.getElementById('accounts-table-container').innerHTML =
+                    '<div class="alert alert-danger">Error loading accounts</div>';
+            }
+        }
+
+        function generateAccountsTable(accounts) {
+            if (accounts.length === 0) {
+                return '<div class="text-center py-4 text-muted">No accounts configured</div>';
+            }
+
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Platform</th>
+                                <th>Username</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Risk Score</th>
+                                <th>Success Rate</th>
+                                <th>Daily Usage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            accounts.forEach(account => {
+                const statusClass = `status-${account.status}`;
+                const riskPercent = (account.risk_score * 100).toFixed(1);
+
+                html += `
+                    <tr>
+                        <td><code>${account.id}</code></td>
+                        <td><i class="fab fa-${account.platform} me-1"></i>${account.platform}</td>
+                        <td>${account.username}</td>
+                        <td><span class="badge ${statusClass}">${account.status}</span></td>
+                        <td>${account.priority}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                    <div class="progress-bar bg-${account.risk_score > 0.7 ? 'danger' : account.risk_score > 0.4 ? 'warning' : 'success'}"
+                                         style="width: ${riskPercent}%"></div>
+                                </div>
+                                ${riskPercent}%
+                            </div>
+                        </td>
+                        <td>${(account.success_rate * 100).toFixed(1)}%</td>
+                        <td>${account.daily_usage}/${account.daily_limit}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="editAccount('${account.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteAccount('${account.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            return html;
+        }
+
+        // Proxy functions
+        async function loadProxies() {
+            try {
+                const response = await fetch('/api/proxies');
+                const data = await response.json();
+
+                const container = document.getElementById('proxies-table-container');
+                container.innerHTML = generateProxiesTable(data.proxies);
+            } catch (error) {
+                console.error('Error loading proxies:', error);
+                document.getElementById('proxies-table-container').innerHTML =
+                    '<div class="alert alert-danger">Error loading proxies</div>';
+            }
+        }
+
+        function generateProxiesTable(proxies) {
+            if (proxies.length === 0) {
+                return '<div class="text-center py-4 text-muted">No proxies configured</div>';
+            }
+
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Host:Port</th>
+                                <th>Protocol</th>
+                                <th>Provider</th>
+                                <th>Country</th>
+                                <th>Health</th>
+                                <th>Success Rate</th>
+                                <th>Response Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            proxies.forEach(proxy => {
+                const healthClass = `health-${proxy.health}`;
+                const responseTime = proxy.response_time_ms ? `${proxy.response_time_ms.toFixed(0)}ms` : '-';
+
+                html += `
+                    <tr>
+                        <td><code>${proxy.id}</code></td>
+                        <td>${proxy.host}:${proxy.port}</td>
+                        <td><code>${proxy.protocol}</code></td>
+                        <td>${proxy.provider || '-'}</td>
+                        <td>${proxy.country || '-'}</td>
+                        <td><span class="badge ${healthClass}">${proxy.health}</span></td>
+                        <td>${(proxy.success_rate * 100).toFixed(1)}%</td>
+                        <td>${responseTime}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-info" onclick="testProxy('${proxy.id}')">
+                                    <i class="fas fa-vial"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteProxy('${proxy.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            return html;
+        }
+
+        async function loadProviders() {
+            try {
+                const response = await fetch('/api/proxies/providers');
+                const data = await response.json();
+
+                const container = document.getElementById('providers-list');
+                container.innerHTML = generateProvidersList(data.providers);
+            } catch (error) {
+                console.error('Error loading providers:', error);
+            }
+        }
+
+        function generateProvidersList(providers) {
+            if (providers.length === 0) {
+                return '<div class="text-center py-2 text-muted">No providers configured</div>';
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+            providers.forEach(provider => {
+                html += `
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${provider.name}</strong>
+                                <br>
+                                <small class="text-muted">${provider.type} • Zone: ${provider.config.zone || 'N/A'}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeProvider('${provider.name}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            return html;
+        }
+
+        // Session functions
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                const data = await response.json();
+
+                const container = document.getElementById('sessions-container');
+                container.innerHTML = generateSessionsView(data.sessions);
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                document.getElementById('sessions-container').innerHTML =
+                    '<div class="alert alert-danger">Error loading sessions</div>';
+            }
+        }
+
+        function generateSessionsView(sessions) {
+            if (sessions.length === 0) {
+                return '<div class="text-center py-4 text-muted">No active sessions</div>';
+            }
+
+            let html = '<div class="row">';
+            sessions.forEach(session => {
+                const statusClass = session.status === 'running' ? 'success' : 'warning';
+                const platformIcon = session.platform === 'tiktok' ? 'fab fa-tiktok' : 'fab fa-instagram';
+
+                html += `
+                    <div class="col-md-6">
+                        <div class="session-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <i class="${platformIcon} me-1"></i>
+                                        ${session.platform.charAt(0).toUpperCase() + session.platform.slice(1)}
+                                    </h6>
+                                    <small class="text-muted">Session: ${session.session_id}</small>
+                                </div>
+                                <span class="badge bg-${statusClass}">${session.status}</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Account:</strong> ${session.account_id}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Started:</strong> ${new Date(session.started_at).toLocaleString()}
+                            </div>
+                            ${session.current_url ? `<div class="mb-2"><strong>URL:</strong> <code>${session.current_url}</code></div>` : ''}
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-sm btn-outline-danger" onclick="stopSession('${session.session_id}')">
+                                    <i class="fas fa-stop me-1"></i>Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            return html;
+        }
+
+        // Action functions
+        async function addAccount() {
+            const form = document.getElementById('add-account-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // Convert tags string to array
+            if (data.tags) {
+                data.tags = data.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+            } else {
+                data.tags = [];
+            }
+
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert('success', `Account added: ${result.account_id}`);
+                    bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+                    form.reset();
+                    if (currentPage === 'accounts') loadAccounts();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to add account');
+                }
+            } catch (error) {
+                console.error('Error adding account:', error);
+                showAlert('danger', 'Error adding account');
+            }
+        }
+
+        async function addProxy() {
+            const form = document.getElementById('add-proxy-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('/api/proxies', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert('success', `Proxy added: ${result.proxy_id}`);
+                    bootstrap.Modal.getInstance(document.getElementById('addProxyModal')).hide();
+                    form.reset();
+                    if (currentPage === 'proxies') loadProxies();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to add proxy');
+                }
+            } catch (error) {
+                console.error('Error adding proxy:', error);
+                showAlert('danger', 'Error adding proxy');
+            }
+        }
+
+        async function addProvider() {
+            const form = document.getElementById('add-provider-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            try {
+                // This would need to be implemented in the backend
+                showAlert('info', 'Provider addition not yet implemented in UI');
+                bootstrap.Modal.getInstance(document.getElementById('addProviderModal')).hide();
+                form.reset();
+            } catch (error) {
+                console.error('Error adding provider:', error);
+                showAlert('danger', 'Error adding provider');
+            }
+        }
+
+        async function startSession() {
+            const form = document.getElementById('start-session-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // Convert checkbox to boolean
+            data.headless = form.elements['headless'].checked;
+
+            try {
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert('success', `Session started: ${result.session_id}`);
+                    bootstrap.Modal.getInstance(document.getElementById('startSessionModal')).hide();
+                    form.reset();
+                    if (currentPage === 'sessions') loadSessions();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to start session');
+                }
+            } catch (error) {
+                console.error('Error starting session:', error);
+                showAlert('danger', 'Error starting session');
+            }
+        }
+
+        async function deleteAccount(accountId) {
+            if (!confirm(`Delete account ${accountId}?`)) return;
+
+            try {
+                const response = await fetch(`/api/accounts/${accountId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('success', 'Account deleted');
+                    if (currentPage === 'accounts') loadAccounts();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showAlert('danger', 'Error deleting account');
+            }
+        }
+
+        async function deleteProxy(proxyId) {
+            if (!confirm(`Delete proxy ${proxyId}?`)) return;
+
+            try {
+                const response = await fetch(`/api/proxies/${proxyId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('success', 'Proxy deleted');
+                    if (currentPage === 'proxies') loadProxies();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to delete proxy');
+                }
+            } catch (error) {
+                console.error('Error deleting proxy:', error);
+                showAlert('danger', 'Error deleting proxy');
+            }
+        }
+
+        async function stopSession(sessionId) {
+            if (!confirm(`Stop session ${sessionId}?`)) return;
+
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('success', 'Session stopped');
+                    if (currentPage === 'sessions') loadSessions();
+                } else {
+                    const error = await response.json();
+                    showAlert('danger', error.detail || 'Failed to stop session');
+                }
+            } catch (error) {
+                console.error('Error stopping session:', error);
+                showAlert('danger', 'Error stopping session');
+            }
+        }
+
+        // Utility functions
+        function showAlert(type, message) {
+            // Create alert element
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alert);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Placeholder functions for unimplemented features
+        function editAccount(accountId) {
+            showAlert('info', 'Account editing not yet implemented');
+        }
+
+        function testProxy(proxyId) {
+            showAlert('info', 'Proxy testing not yet implemented');
+        }
+
+        function removeProvider(providerName) {
+            showAlert('info', 'Provider removal not yet implemented');
+        }
+    </script>
+</body>
+</html>

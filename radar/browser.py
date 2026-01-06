@@ -2,6 +2,7 @@ from playwright.sync_api import sync_playwright, Browser, BrowserContext, Page, 
 from typing import Optional, Dict, Any, List
 from playwright_stealth import Stealth
 import random
+from radar.fingerprint_generator import FingerprintGenerator, BrowserFingerprint
 
 
 # Anti-detection browser arguments
@@ -138,18 +139,19 @@ class BrowserManager:
         return browser.new_context(**kwargs)
 
     def launch_persistent_context(
-        self, 
-        user_data_dir: str, 
-        headless: bool = True, 
+        self,
+        user_data_dir: str,
+        headless: bool = True,
         slow_mo: int = 0,
         proxy: Optional[Dict[str, str]] = None,
         randomize: bool = True,
         mobile: bool = False,
+        fingerprint: Optional[BrowserFingerprint] = None,
         **kwargs
     ) -> BrowserContext:
         """
         Launch a persistent browser context with session storage.
-        
+
         Args:
             user_data_dir: Directory to store session data
             headless: Run headless (False recommended)
@@ -157,23 +159,30 @@ class BrowserManager:
             proxy: Proxy configuration
             randomize: Use random viewport/user agent
             mobile: Use mobile configuration
+            fingerprint: BrowserFingerprint to apply (overrides randomize)
             **kwargs: Additional context options
         """
         if not self._playwright:
             raise RuntimeError("BrowserManager must be used as a context manager")
-        
+
         args = self._get_browser_args(kwargs.pop('args', None))
-        
-        # Set defaults if not provided
-        if randomize and 'viewport' not in kwargs:
-            if mobile:
-                kwargs['viewport'] = {'width': 412, 'height': 915}
-            else:
-                kwargs['viewport'] = self._randomize_viewport()
-        
-        if randomize and 'user_agent' not in kwargs:
-            kwargs['user_agent'] = self.get_random_user_agent(mobile=mobile)
-        
+
+        # Apply fingerprint settings if provided
+        if fingerprint:
+            # Use fingerprint's context options
+            fingerprint_options = fingerprint.to_playwright_context_options()
+            kwargs.update(fingerprint_options)
+        elif randomize:
+            # Set defaults if not provided and not using fingerprint
+            if 'viewport' not in kwargs:
+                if mobile:
+                    kwargs['viewport'] = {'width': 412, 'height': 915}
+                else:
+                    kwargs['viewport'] = self._randomize_viewport()
+
+            if 'user_agent' not in kwargs:
+                kwargs['user_agent'] = self.get_random_user_agent(mobile=mobile)
+
         context_options = {
             'user_data_dir': user_data_dir,
             'headless': headless,
@@ -181,11 +190,23 @@ class BrowserManager:
             'args': args,
             **kwargs
         }
-        
+
         if proxy:
             context_options['proxy'] = proxy
-        
-        return self._playwright.chromium.launch_persistent_context(**context_options)
+
+        context = self._playwright.chromium.launch_persistent_context(**context_options)
+
+        # Apply fingerprint JavaScript spoofing if fingerprint provided
+        if fingerprint:
+            # Create a page to apply fingerprint scripts
+            page = context.new_page()
+            try:
+                FingerprintGenerator().apply_fingerprint_to_page(page, fingerprint)
+            finally:
+                # Close the temporary page
+                page.close()
+
+        return context
 
     def new_page(self, context: BrowserContext, stealth: bool = False) -> Page:
         """

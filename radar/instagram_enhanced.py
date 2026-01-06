@@ -8,7 +8,7 @@ import datetime
 from pathlib import Path
 from playwright.sync_api import Page, BrowserContext, ElementHandle, TimeoutError as PlaywrightTimeout
 from radar.browser import BrowserManager
-from radar.selectors import SelectorStrategy, INSTAGRAM_SELECTORS
+from radar.element_selectors import SelectorStrategy, INSTAGRAM_SELECTORS
 from radar.session_manager import load_playwright_cookies
 
 class EnhancedInstagramAutomator:

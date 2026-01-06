@@ -13,6 +13,11 @@ from radar.engagement_models import EngagementAction, EngagementActionType, Enga
 from radar.engagement import EngagementManager
 from radar.browser import BrowserManager
 
+# Import new CLI modules
+from .cli_accounts import AccountCLI
+from .cli_proxies import ProxyCLI
+from .cli_sessions import SessionCLI
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -339,6 +344,62 @@ def batch(
 
     except Exception as e:
         print(f"[red]Error: {e}[/red]")
+
+# Account management commands - delegate to argparse CLI
+@app.command()
+def accounts(ctx: typer.Context):
+    """Manage social media accounts."""
+    import sys
+    from .cli_accounts import main as accounts_main
+    # Replace sys.argv to make argparse think it was called directly
+    original_argv = sys.argv[:]
+    sys.argv = ['radar-cli', 'accounts'] + sys.argv[2:]
+    try:
+        accounts_main()
+    finally:
+        sys.argv = original_argv
+
+# Proxy management commands - delegate to argparse CLI
+@app.command()
+def proxies(ctx: typer.Context):
+    """Manage proxy pools and providers."""
+    import sys
+    from .cli_proxies import main as proxies_main
+    # Replace sys.argv to make argparse think it was called directly
+    original_argv = sys.argv[:]
+    sys.argv = ['radar-cli', 'proxies'] + sys.argv[2:]
+    try:
+        proxies_main()
+    finally:
+        sys.argv = original_argv
+
+# Session management commands - delegate to argparse CLI
+@app.command()
+def session(ctx: typer.Context):
+    """Manage browser sessions."""
+    import sys
+    from .cli_sessions import main as sessions_main
+    # Replace sys.argv to make argparse think it was called directly
+    original_argv = sys.argv[:]
+    sys.argv = ['radar-cli', 'session'] + sys.argv[2:]
+    try:
+        sessions_main()
+    finally:
+        sys.argv = original_argv
+
+# Web UI command
+@app.command()
+def webui(ctx: typer.Context, port: int = typer.Option(8000, help="Port for the web UI server")):
+    """Launch the web-based user interface."""
+    import sys
+    from .web_ui import main as webui_main
+    # Replace sys.argv to make argparse think it was called directly
+    original_argv = sys.argv[:]
+    sys.argv = ['radar-webui', '--port', str(port)] + sys.argv[2:]
+    try:
+        webui_main()
+    finally:
+        sys.argv = original_argv
 
 @app.command()
 def run(stack_path: str = "stack.yaml"):

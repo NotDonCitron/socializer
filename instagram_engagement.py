@@ -48,30 +48,6 @@ def login_with_cookies():
     except Exception as e:
         print(f"❌ Login failed: {e}")
         return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
-    except Exception as e:
-        print(f"❌ Login failed: {e}")
-        return None
 
     # Try to get account info to verify login
     try:

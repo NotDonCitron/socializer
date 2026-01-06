@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from playwright.sync_api import BrowserContext, Page
-from radar.selectors import SelectorStrategy
+from radar.element_selectors import SelectorStrategy
 
 COOKIES_PATH = "tiktok_session/cookies.json"
 
