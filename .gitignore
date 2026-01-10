@@ -21,6 +21,8 @@ downloaded_files/
 socializer-api.zip
 *.sqlite
 *.log
+debug_failure.png
+debug_page.html
 
 # Temp panels and clones
 temp_panel_repo/
@@ -74,3 +76,4 @@ socializer_worker.py
 test_our_video*
 test_session/
 tests/
+hf_deploy_git_temp/
