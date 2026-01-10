@@ -3,7 +3,7 @@ TikTok automation module with advanced anti-detection and retry logic.
 """
 from playwright.sync_api import Page, BrowserContext
 from radar.browser import BrowserManager
-from radar.selectors import SelectorStrategy, TIKTOK_SELECTORS
+from radar.ig_selectors import SelectorStrategy, TIKTOK_SELECTORS
 from radar.human_behavior import human_delay, human_type, human_click, wait_human
 from radar.session_manager import validate_tiktok_session, load_playwright_cookies
 import time

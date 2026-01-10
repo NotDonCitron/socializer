@@ -34,3 +34,4 @@ temp_socializer_github/
 *.sqlite-wal
 *.sqlite-shm
 ig_session_worker/
+node_modules

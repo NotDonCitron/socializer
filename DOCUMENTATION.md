@@ -40,6 +40,8 @@ source ../venv/bin/activate
 pip install -e .
 playwright install chromium
 ```
+By default, the radar pipeline uses SQLite at `data/radar.sqlite`. Set `DATABASE_URL`
+if you want Postgres (e.g. `postgresql://socializer:socializer_password@localhost:5432/socializer_db`).
 
 ### 2. Setup the Admin Panel
 ```bash

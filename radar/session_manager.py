@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 from playwright.sync_api import BrowserContext, Page
-from radar.selectors import SelectorStrategy
+from radar.ig_selectors import SelectorStrategy
 
 def get_session_path(platform: str, filename: str) -> str:
     """Returns the standardized path for session artifacts."""
@@ -24,12 +24,21 @@ def load_playwright_cookies(context: BrowserContext, path: str):
                 
             # Playwright expects 'sameSite' to be 'Strict', 'Lax', or 'None'
             # Selenium might export it as a boolean or lowercase string.
+            # Selenium uses 'expiry', Playwright uses 'expires'
             cleaned_cookies = []
             for cookie in cookies:
+                # Rename expiry to expires
+                if "expiry" in cookie and "expires" not in cookie:
+                    cookie["expires"] = cookie["expiry"]
+                
                 if "sameSite" in cookie:
-                    if cookie["sameSite"] not in ["Strict", "Lax", "None"]:
-                        # Map or remove invalid sameSite values
+                    # SeleniumBase might set sameSite=None or False or a string.
+                    # We ensure it's a valid Playwright value.
+                    val = str(cookie["sameSite"]).capitalize()
+                    if val not in ["Strict", "Lax", "None"]:
                         del cookie["sameSite"]
+                    else:
+                        cookie["sameSite"] = val
                 cleaned_cookies.append(cookie)
                 
             context.add_cookies(cleaned_cookies)

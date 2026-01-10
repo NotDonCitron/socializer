@@ -2,6 +2,7 @@ import os
 import asyncio
 import typer
 from rich import print
+from typing import Optional
 from radar.config import load_stack_config
 from radar.storage import connect, upsert_raw, raw_exists_with_same_hash, upsert_post, get_latest_raw_item
 from radar.sources.github import fetch_releases
@@ -12,14 +13,53 @@ from radar.pipeline.render import render_posts
 from radar.pipeline.weekly import render_weekly
 from radar.llm.mock import MockLLM
 from radar.llm.gemini_stub import GeminiLLM
+from radar.db import engine, Account, Proxy, create_db_and_tables
+from sqlmodel import Session, select
 
 app = typer.Typer()
+account_app = typer.Typer()
+proxy_app = typer.Typer()
+app.add_typer(account_app, name="account", help="Manage social accounts")
+app.add_typer(proxy_app, name="proxy", help="Manage proxies")
 
 def get_llm():
     provider = os.getenv("LLM_PROVIDER", "mock")
     if provider == "gemini":
         return GeminiLLM(api_key=os.getenv("GEMINI_API_KEY", ""))
     return MockLLM()
+
+@app.command()
+def init():
+    """Initialize database tables."""
+    create_db_and_tables()
+    print("[green]Database initialized.[/green]")
+
+@account_app.command("add")
+def account_add(platform: str, username: str, password: str, proxy_id: Optional[int] = None):
+    """Add a new social media account."""
+    with Session(engine) as session:
+        acc = Account(platform=platform, username=username, password=password, proxy_id=proxy_id)
+        session.add(acc)
+        session.commit()
+        print(f"[green]Account @{username} added to {platform}[/green]")
+
+@account_app.command("list")
+def account_list():
+    """List all accounts."""
+    with Session(engine) as session:
+        accounts = session.exec(select(Account)).all()
+        for a in accounts:
+            p_str = f"Proxy: {a.proxy.host}:{a.proxy.port}" if a.proxy else "No Proxy"
+            print(f"ID: {a.id} | [bold]{a.platform}[/bold] | @{a.username} | {p_str} | Status: {a.status}")
+
+@proxy_app.command("add")
+def proxy_add(host: str, port: int, user: Optional[str] = None, password: Optional[str] = None, protocol: str = "http"):
+    """Add a new proxy."""
+    with Session(engine) as session:
+        p = Proxy(host=host, port=port, username=user, password=password, protocol=protocol)
+        session.add(p)
+        session.commit()
+        print(f"[green]Proxy {host}:{port} added. ID: {p.id}[/green]")
 
 @app.command()
 def version():

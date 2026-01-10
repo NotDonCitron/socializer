@@ -22,7 +22,7 @@ from radar.ig_config import (
     IG_SKIP_PRIVATE,
     IG_ALLOWED_USERNAME_PREFIXES,
 )
-from radar.selectors import SelectorStrategy, INSTAGRAM_SELECTORS
+from radar.ig_selectors import SelectorStrategy, INSTAGRAM_SELECTORS
 from radar.session_manager import load_playwright_cookies, get_session_path
 
 class InstagramAutomator:
@@ -512,113 +512,81 @@ class InstagramAutomator:
             pass
 
     def login(self, username, password, headless=True, timeout=IG_LOGIN_TIMEOUT):
-        """
-        Attempts to log in to Instagram.
-        Returns True if login appears successful or already logged in.
-        """
-        self.last_error = None
+        """Unified login method using SeleniumBase for bridge if needed."""
         if not self.context:
-            self._launch_context(headless=headless)
+            self._launch_context(headless)
         
-        self.page = self.manager.new_page(self.context, stealth=True)
+        if not self.page:
+            self.page = self.manager.new_page(self.context, stealth=True)
+
+        self.last_error = None
         
+        # 1. Quick check if already logged in via stored cookies
         try:
-            self._debug_log("Navigating to Instagram")
-            # Go to main page first
+            self._debug_log("Checking if already logged in via Playwright...")
             self.page.goto("https://www.instagram.com/", wait_until="domcontentloaded", timeout=timeout)
-            self.page.wait_for_timeout(3000)
-
-            # Check for Facebook redirect (Consumer rights/Contract cancel pages)
-            if "facebook.com" in self.page.url:
-                self._debug_log(f"Detected Facebook redirect ({self.page.url}). Forcing return to Instagram...")
-                self.page.goto("https://www.instagram.com/", wait_until="domcontentloaded", timeout=timeout)
-                self.page.wait_for_timeout(3000)
-
-        except Exception as e:
-            self.last_error = f"Navigation failed: {e}"
-            return False
-        
-        # Better login detection: Check for elements that only logged-in users see
-        self._debug_log("Checking if already logged in...")
-        
-        # Look for profile/avatar icon or navigation elements
-        logged_in_indicators = [
-            'svg[aria-label="Home"]',  # Home icon in nav
-            'svg[aria-label="New post"]',  # Create icon
-            'a[href*="/direct/"]',  # Messages link
-            'svg[aria-label="Notifications"]',  # Notifications
-            'img[alt*="profile picture"]',  # Profile pic
-        ]
-        
-        is_logged_in = False
-        for selector in logged_in_indicators:
-            try:
-                element = self.page.wait_for_selector(selector, timeout=3000, state="visible")
-                if element:
-                    self._debug_log(f"Found logged-in indicator: {selector}")
-                    is_logged_in = True
-                    break
-            except:
-                continue
-        
-        if is_logged_in:
-            self._debug_log("Already logged in!")
             self.handle_popups()
-            return True
-        
-        # Not logged in - check if we're on login page or need to navigate there
-        self._debug_log("Not logged in. Attempting login...")
-        
-        # If not on login page, navigate there
-        if "login" not in self.page.url:
-            self.page.goto("https://www.instagram.com/accounts/login/", wait_until="domcontentloaded", timeout=timeout)
-            self.page.wait_for_timeout(2000)
-        
-        # Now do the login
-        try:
-            self.page.wait_for_selector('input[name="username"]', timeout=5000)
-            self.page.fill('input[name="username"]', username)
-            self.page.fill('input[name="password"]', password)
-            self.page.click('button[type="submit"]')
             
-            # Wait for navigation or error
-            self.page.wait_for_timeout(5000)
+            from radar.session_manager import validate_instagram_session
+            check = validate_instagram_session(self.page)
             
-            # Check if login was successful by looking for logged-in indicators again
-            for selector in logged_in_indicators:
-                try:
-                    element = self.page.query_selector(selector)
-                    if element and element.is_visible():
-                        self._debug_log(f"Login successful! Found: {selector}")
-                        self.handle_popups()
-                        # Save cookies after successful login
-                        cookies_path = os.path.join(self.user_data_dir, "cookies.json")
-                        from radar.session_manager import save_playwright_cookies
-                        save_playwright_cookies(self.context, cookies_path)
-                        return True
-                except:
-                    continue
-            
-            # Check for error messages
-            alert = self.page.query_selector('div[role="alert"]')
-            if alert:
-                self.last_error = alert.inner_text()
-            else:
-                self.last_error = "Login failed - could not verify login success."
-                
+            if check['valid']:
+                self._debug_log(f"Session verified (Playwright): {check['reason']}")
+                return True
         except Exception as e:
-            self.last_error = f"Login failed: {e}"
+            self._debug_log(f"Initial session check failed: {e}")
+
+        self._debug_log(f"Session invalid/missing. Launching SeleniumBase Stealth Bridge...")
+        
+        # 2. Use SeleniumBase to refresh cookies
+        from radar.auth_bridge_ig import sb_login
+        # Ensure we run in the same headless mode
+        success = sb_login(username=username, password=password, headless=headless)
+        
+        if success:
+            self._debug_log("SeleniumBase Bridge login succeeded. Reloading Playwright context...")
+            # Close existing context and page to reload with new cookies
+            self.context.close()
+            # Launch again - it will pick up the new cookies in _launch_context
+            self._launch_context(headless)
+            self.page = self.manager.new_page(self.context, stealth=True)
             
-        return False
+            self.page.goto("https://www.instagram.com/", wait_until="domcontentloaded", timeout=timeout)
+            self.handle_popups()
+            
+            from radar.session_manager import validate_instagram_session
+            check = validate_instagram_session(self.page)
+            if check['valid']:
+                 self._debug_log("Session bridged successfully to Playwright!")
+                 return True
+            else:
+                 self.last_error = f"Session still invalid after bridge: {check['reason']}"
+                 self._debug_log(self.last_error)
+                 return False
+        else:
+            self.last_error = "SeleniumBase Bridge login failed."
+            self._debug_log(self.last_error)
+            return False
 
     def handle_popups(self, timeout=5000):
-        """Closes common Instagram popups."""
+        """Closes common Instagram/Facebook popups, including those in frames."""
+        popups = INSTAGRAM_SELECTORS.get("popups", []) # Fallback if list not updated
+        # [I will keep the inline list for now to be sure]
         popups = [
             "text=Not Now", "text=Nicht jetzt", 
             "button:has-text('Not Now')", "button:has-text('Nicht jetzt')",
+            "button[data-cookiebanner='accept_button']",
+            "button[data-testid='cookie-policy-manage-dialog-accept-button']",
+            "button:has-text('Allow all cookies')",
+            "button:has-text('Alle Cookies erlauben')",
+            "button:has-text('Alles akzeptieren')",
+            "button:has-text('Allow Essential and Optional Cookies')",
             "button:has-text('Decline optional cookies')",
             "button:has-text('Only allow essential cookies')",
+            "button:has-text('Nur essenzielle Cookies erlauben')",
+            "button:has-text('Optionalen Cookies widersprechen')",
             "button:has-text('Got it')", "button:has-text('OK')",
+            "button:has-text('Verstanden')",
             "[aria-label='Close']", "[aria-label='Schließen']",
             "button[aria-label='Close']", 
             "div[role='button']:has-text('Not Now')",
@@ -631,16 +599,23 @@ class InstagramAutomator:
         
         for selector in popups:
             try:
+                # Check main page
                 element = self.page.query_selector(selector)
-                is_visible = element.is_visible() if element else self.page.is_visible(selector, timeout=500)
-                if is_visible:
-                    if "Next" in selector or "Weiter" in selector:
-                        continue
-
+                if element and element.is_visible():
                     self._debug_log(f"Closing popup: {selector}")
-                    self.page.click(selector)
+                    element.click(timeout=2000)
                     self.page.wait_for_timeout(500)
-            except:
+                
+                # Check all frames
+                for frame in self.page.frames:
+                    if frame == self.page.main_frame:
+                        continue
+                    element = frame.query_selector(selector)
+                    if element and element.is_visible():
+                        self._debug_log(f"Closing popup in frame: {selector}")
+                        element.click(timeout=2000)
+                        self.page.wait_for_timeout(500)
+            except Exception as e:
                 continue
 
     def _click_create_button(self, strategy: SelectorStrategy, timeout: int = 15000) -> bool:
@@ -721,37 +696,41 @@ class InstagramAutomator:
         # 1. File Selection Phase
         print(f"[TRACE] Attempting file selection for {abs_path}")
         try:
-            # Try input directly first
-            file_input = self.page.locator('input[type="file"]').first
+            # Try to find a file input that belongs to the modal
+            file_input = self.page.locator('div[role="dialog"] input[type="file"]').first
+            if not file_input.count():
+                file_input = self.page.locator('input[type="file"]').first
+                
             if file_input:
                 file_input.set_input_files(abs_path)
             else:
                 self.page.set_input_files('input[type="file"]', abs_path, timeout=5000)
             print("[TRACE] File selection called.")
-            self.page.wait_for_timeout(2000)
+            self.page.wait_for_timeout(3000)
         except Exception as e:
-            print(f"[TRACE] File selection error (may be handled by button click): {e}")
+            print(f"[TRACE] File selection error: {e}")
 
-        # If file selection didn't trigger, try clicking "Select from computer"
+        # If file selection didn't trigger (we are still on "Select from computer" or similar)
         select_btns = [
-            'button:has-text("Select from computer")',
-            'button:has-text("Von Computer auswählen")',
-            '[role="button"]:has-text("Select from computer")',
-            'div[role="button"] >> text=/Select.*computer/i'
+             'button:has-text("Select from computer")',
+             'button:has-text("Von Computer auswählen")',
+             '[role="button"]:has-text("Select from computer")',
+             'div[role="button"] >> text=/Select.*computer/i'
         ]
         
-        # Check if we need to click "Select" to open file dialog (fallback)
-        btn = self._find_clickable(select_btns)
-        if btn:
-             print("[TRACE] Found Select button, clicking...")
-             try:
-                 with self.page.expect_file_chooser(timeout=5000) as fc:
-                     btn.click(force=True)
-                 fc.value.set_files(abs_path)
-                 print("[TRACE] File chooser fallback success")
-                 self.page.wait_for_timeout(2000)
-             except Exception as e:
-                 print(f"[TRACE] File chooser fallback failed: {e}")
+        # Check if we are still on the "Select" screen
+        if self._find_clickable(select_btns) or self.page.is_visible('text="Drag photos and videos here"'):
+             self._debug_log("Still on Select screen, attempting fallback click...")
+             btn = self._find_clickable(select_btns)
+             if btn:
+                 try:
+                     with self.page.expect_file_chooser(timeout=5000) as fc:
+                         btn.click(force=True)
+                     fc.value.set_files(abs_path)
+                     print("[TRACE] File chooser fallback success")
+                     self.page.wait_for_timeout(3000)
+                 except Exception as e:
+                     print(f"[TRACE] File chooser fallback failed: {e}")
 
         # 2. Infinite State Loop (Next -> Share)
         # We loop until we see "Success" or timeout
@@ -762,9 +741,12 @@ class InstagramAutomator:
         next_selectors = [
             'button:has-text("Next")',
             'button:has-text("Weiter")',
+            'button:has-text("OK")',
+            'button:has-text("Alle akzeptieren")',
             'div._ac7d div[role="button"]:has-text("Next")',
             'div[role="button"]:has-text("Next")',
             'div[role="button"]:has-text("Weiter")',
+            'div[role="button"]:has-text("OK")',
         ]
         
         share_selectors = [
@@ -842,9 +824,11 @@ class InstagramAutomator:
                  except:
                      pass
 
-            # D. Handle Blocking Expanders (Optional)
-            # Sometimes accessibility accordion is expanded and pushes usage off? 
-            # Usually not an issue if using specific selectors, but good to be aware.
+            # D. Handle Blocking Expanders or Errors
+            if self.page.is_visible('text="Only images can be posted"') or self.page.is_visible('text="Nur Bilder können gepostet werden"'):
+                 self._debug_log("Critical Error: Only images can be posted for this account.")
+                 self.last_error = "Platform restriction: Only images can be posted."
+                 return False
             
             # E. Check for "Success" close button (if missed main text)
             close_btn = self._find_clickable(['button:has-text("Close")', 'button:has-text("Schließen")'])
@@ -887,8 +871,13 @@ class InstagramAutomator:
             
             self.handle_popups()
 
-            self._debug_log("Opening create flow")
-            self.page.goto("https://www.instagram.com/create/select/", wait_until="domcontentloaded")
+            self._debug_log("Opening create flow via UI button")
+            # Ensure we are on home or a page with the sidebar
+            if not self._click_create_button(strategy):
+                # Fallback to direct URL if button click fails, but log it
+                self._debug_log("Create button click failed, falling back to direct URL (risky)")
+                self.page.goto("https://www.instagram.com/create/select/", wait_until="domcontentloaded")
+            
             self.page.wait_for_timeout(2000)
             
             # Use state machine for the rest
