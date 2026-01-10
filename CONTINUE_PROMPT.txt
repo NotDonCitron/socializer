@@ -1,0 +1,22 @@
+Fix Instagram upload: The Next button selector in `radar/instagram.py` isn't finding the button after file upload. 
+
+**Context:**
+- Login works perfectly (9 cookies saved, account `pasca_lvangoldberg`)
+- File upload to Instagram succeeds
+- Debug shows buttons found: ['', 'Next', 'Aden', 'Clarendon', etc.]
+- But selector can't find "Next" button
+
+**Files to check:**
+1. `radar/instagram.py` - function `_upload_media()` around line 300-350
+2. `radar/selectors.py` - `INSTAGRAM_SELECTORS["next_button"]` definition
+3. `debug_shots/debug_ig_021618_buttons_found_in_dialog_______.png` - screenshot showing the UI
+
+**Task:**
+Update the selector strategy to find and click the "Next" button after Instagram file upload. The button text is "Next" according to debug output.
+
+**Test command:**
+```bash
+python examples/instagram_test_video.py
+```
+
+Expected: Upload completes successfully instead of "Next button did not appear" error.

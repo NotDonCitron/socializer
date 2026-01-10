@@ -1,0 +1,4 @@
+undetected-chromedriver>=3.5.0
+selenium>=4.0.0
+instagrapi>=2.0.0
+pycryptodome>=3.19.0

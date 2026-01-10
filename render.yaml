@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: socializer-admin
+    runtime: docker
+    context: admin-panel
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: socializer-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+    plan: free
+
+  - type: web
+    name: socializer-api
+    runtime: docker
+    context: socializer-api
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+    plan: free
+
+# Note: Render Free Tier doesn't include a free Postgres within the blueprint (it suspends). 
+# However, for this setup we recommend using an external Supabase DB or creating a managed Postgres.
+# If you want to use Render Postgres (which expires after 90 days on free tier or costs $), uncomment below.
+# databases:
+#   - name: socializer-db
+#     plan: free

@@ -1,0 +1,31 @@
+__pycache__/
+*.pyc
+.env
+data/
+site/node_modules/
+site/dist/
+.DS_Store
+*.egg-info/
+site/src/content/
+site/.astro/
+.venv/
+
+# Debug artifacts
+error_upload_debug_*.png
+debug_shots/
+tiktok_session/
+ig_session/
+ig_session_data/
+test_ud_dir/
+downloaded_files/
+socializer-api.zip
+*.sqlite
+*.log
+
+# Temp panels and clones
+temp_panel_repo/
+temp_socializer_panel/
+temp_socializer_github/
+
+# Keep manual login screenshots if needed, but usually ignore
+# tiktok_sb_login.png
