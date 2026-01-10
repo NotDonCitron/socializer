@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -11,6 +12,23 @@ from . import models, schemas, scheduler
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Socializer API")
+
+# Configure CORS
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5501", 
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5501",
+    "*" # Allow all for dev
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 API_TOKEN = os.getenv("SOCIALIZER_API_TOKEN")
 

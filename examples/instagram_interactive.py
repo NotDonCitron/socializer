@@ -81,8 +81,8 @@ def main():
         automator.context = manager.launch_persistent_context(
             user_data_dir,
             headless=False,
-            viewport={"width": 412, "height": 915},
-            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
+            viewport={"width": 1280, "height": 800},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
         )
         automator.page = manager.new_page(automator.context, stealth=True)
         
@@ -93,7 +93,8 @@ def main():
         # Handle popups
         automator.handle_popups()
         
-        print("\n2. Click the '+' (New Post) button in the browser...")
+        print("\n2. Opening create flow in desktop UI...")
+        automator.page.goto("https://www.instagram.com/create/select/", wait_until="domcontentloaded")
         input(">>> Press ENTER once the file picker is open...")
         
         print(f"\n3. Setting image file: {os.path.basename(image_path)}")

@@ -4,4 +4,4 @@ $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path "$PSScriptRoot\..")
 Set-Location .\socializer-api
 
-uvicorn socializer_api.app:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000

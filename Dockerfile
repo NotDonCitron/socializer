@@ -40,11 +40,11 @@ RUN pip install --upgrade pip && \
 COPY socializer-api ./socializer-api
 
 # --- Node.js Setup (Admin Panel) ---
-COPY admin-panel/package*.json ./admin-panel/
-WORKDIR /app/admin-panel
+COPY admin-panel-temp/package*.json ./admin-panel-temp/
+WORKDIR /app/admin-panel-temp
 RUN npm ci
 
-COPY admin-panel ./admin-panel
+COPY admin-panel-temp ./admin-panel-temp
 
 # Build Frontend
 # We explicitly set VITE_API_BASE_URL to localhost:8000 because in this Monolith, 
@@ -67,6 +67,7 @@ COPY admin-panel ./admin-panel
 # If I change `API_BASE` to `/api/python`, I need to set up a proxy in Express.
 # For now, let's build assuming Node handles the UI.
 
+ENV VITE_API_BASE_URL=
 RUN npm run build
 
 # Setup Start Script

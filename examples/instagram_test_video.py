@@ -1,15 +1,30 @@
 import os
+# Set DEBUG=1 check BEFORE imports
+os.environ["DEBUG"] = "1"
+
 import sys
 import time
 from radar.browser import BrowserManager
 from radar.instagram import InstagramAutomator
 
 def main():
-    # Set DEBUG=1 to see screenshots
-    os.environ["DEBUG"] = "1"
     
-    # video_path = os.path.join(os.getcwd(), "test_video.mp4")
-    video_path = os.path.join(os.getcwd(), "test_image.jpg") # DEBUG: Try image first
+    # content_video_path = os.path.join(os.getcwd(), "content", "test_video.mp4")
+    # root_video_path = os.path.join(os.getcwd(), "test_video.mp4")
+    # video_path = content_video_path if os.path.exists(content_video_path) else root_video_path
+    
+    # DEBUG: Try image
+    content_dir = os.path.join(os.getcwd(), "content")
+    # root_video_path = os.path.join(os.getcwd(), "test_video.mp4")
+    # video_path = content_video_path if os.path.exists(content_video_path) else root_video_path
+    
+    # DEBUG: Try image
+    content_dir = os.path.join(os.getcwd(), "content")
+    image_files = [f for f in os.listdir(content_dir) if f.endswith(".jpg")]
+    if image_files:
+        video_path = os.path.join(content_dir, image_files[0])
+    else:
+        video_path = "test_image.jpg"
     user_data_dir = os.path.abspath("ig_session")
     
     if not os.path.exists(video_path):
@@ -23,7 +38,7 @@ def main():
         automator = InstagramAutomator(manager, user_data_dir=user_data_dir)
         
         # 1. Login (using existing session)
-        if not automator.login(username="", password="", headless=True):
+        if not automator.login(username="", password="", headless=False):
             print(f"Login failed: {automator.last_error}")
             return
             
