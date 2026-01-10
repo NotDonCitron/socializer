@@ -1,6 +1,7 @@
 """
 FastAPI application exposing content pack review, jobs, artifacts, metrics, and scheduling policy.
 """
+
 from __future__ import annotations
 
 import json
@@ -123,6 +124,27 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "name": "Socializer API",
+        "version": "0.1.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "content_packs": "/content-packs",
+            "jobs": "/jobs",
+            "schedule": "/schedule",
+        },
+    }
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
 @app.get("/content-packs", response_model=List[ContentPack])
 def list_packs(
     status: Optional[str] = Query(None, pattern="^(draft|approved|rejected)$"),
@@ -224,7 +246,9 @@ def list_metrics(job_id: str, db_path: Optional[str] = None) -> List[dict]:
     return [dict(r) for r in rows]
 
 
-def _calc_reward(job_id: str, window: str, views: int, saves: int, shares: int, db_path: Optional[str] = None) -> float:
+def _calc_reward(
+    job_id: str, window: str, views: int, saves: int, shares: int, db_path: Optional[str] = None
+) -> float:
     if window == "60m":
         return float(views)
     if window == "24h":
@@ -251,7 +275,9 @@ def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
 
-    reward = _calc_reward(job_id, payload.window, payload.views, payload.saves, payload.shares, db_path=path)
+    reward = _calc_reward(
+        job_id, payload.window, payload.views, payload.saves, payload.shares, db_path=path
+    )
     metric_id, inserted = db.record_metrics(
         job_id=job_id,
         window=payload.window,
@@ -263,7 +289,7 @@ def add_metrics(job_id: str, payload: MetricsRequest, _: None = Depends(require_
         reward=reward,
         db_path=path,
     )
-    
+
     if not inserted:
         # We still return the reward, but it's the one from the existing record if we want to be fully accurate.
         # But for simplicity, we'll just say already_exists.
