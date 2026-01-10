@@ -167,6 +167,81 @@ INSTAGRAM_SELECTORS = {
         'h2:has-text("shared")',
         'svg[aria-label="Animated checkmark"]'
     ],
+    "search_button": [
+        'svg[aria-label="Search"]',
+        'svg[aria-label="Suche"]',
+        'a[href="/explore/search/"]',
+        'div[role="link"]:has-text("Search")',
+        'div[role="link"]:has-text("Suche")',
+        'span:has-text("Search")',
+        'span:has-text("Suche")',
+    ],
+    "search_input": [
+        'input[placeholder="Search"]',
+        'input[placeholder="Suche"]',
+        'input[aria-label="Search input"]',
+        'input[aria-label*="Search" i]',
+        'input[aria-label*="Suche" i]',
+    ],
+    "search_results_container": [
+        'div[role="dialog"]',
+        'div[role="menu"]',
+        'div[aria-label*="Results" i]',
+        'div[aria-label*="Ergebnisse" i]',
+    ],
+    "follow_button": [
+        'button:has-text("Follow")',
+        'button:has-text("Follow Back")',
+        'button:has-text("Folgen")',
+        'button:has-text("Zurückfolgen")',
+        'div[role="button"]:has-text("Follow")',
+        'div[role="button"]:has-text("Folgen")',
+    ],
+    "following_button": [
+        'button:has-text("Following")',
+        'button:has-text("Requested")',
+        'button:has-text("Abonniert")',
+        'button:has-text("Angefragt")',
+        'div[role="button"]:has-text("Following")',
+        'div[role="button"]:has-text("Requested")',
+    ],
+    "like_button": [
+        'svg[aria-label="Like"]',
+        'span[aria-label="Like"]',
+        'button[aria-label="Like"]',
+        'svg[aria-label="Gefällt mir"]',
+        'svg[aria-label="Gefallt mir"]',
+        'button[aria-label*="Like" i]',
+    ],
+    "liked_button": [
+        'svg[aria-label="Unlike"]',
+        'span[aria-label="Unlike"]',
+        'button[aria-label="Unlike"]',
+        'svg[aria-label="Gefällt mir nicht mehr"]',
+        'svg[aria-label="Gefallt mir nicht mehr"]',
+    ],
+    "comment_box": [
+        'textarea[aria-label*="Add a comment" i]',
+        'textarea[placeholder*="Add a comment" i]',
+        'textarea[aria-label*="Kommentar" i]',
+    ],
+    "comment_post_button": [
+        'button:has-text("Post")',
+        'button:has-text("Publish")',
+        'button:has-text("Posten")',
+        'button:has-text("Veröffentlichen")',
+    ],
+    "private_account": [
+        'h2:has-text("This account is private")',
+        'h2:has-text("This Account is Private")',
+        'span:has-text("This account is private")',
+        'h2:has-text("Dieses Konto ist privat")',
+        'span:has-text("Dieses Konto ist privat")',
+    ],
+    "profile_post_link": [
+        'article a[href*="/p/"]',
+        'article a[href*="/reel/"]',
+    ],
 }
 
 

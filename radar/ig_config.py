@@ -91,6 +91,36 @@ IG_RANDOM_SCROLL: bool = os.getenv("IG_RANDOM_SCROLL", "1") == "1"
 
 
 # =============================================================================
+# Search & Guardrails
+# =============================================================================
+
+# Maximum number of search results to collect per query
+IG_SEARCH_MAX_RESULTS: int = int(os.getenv("IG_SEARCH_MAX_RESULTS", "25"))
+
+# Maximum number of scrolls while collecting search results
+IG_SEARCH_MAX_SCROLLS: int = int(os.getenv("IG_SEARCH_MAX_SCROLLS", "3"))
+
+# Maximum number of searches per hour (0 disables the limit)
+IG_MAX_SEARCHES_PER_HOUR: int = int(os.getenv("IG_MAX_SEARCHES_PER_HOUR", "30"))
+
+
+# =============================================================================
+# Engagement Guardrails
+# =============================================================================
+
+# Limit actions per hour (0 disables the limit)
+IG_MAX_FOLLOWS_PER_HOUR: int = int(os.getenv("IG_MAX_FOLLOWS_PER_HOUR", "20"))
+IG_MAX_LIKES_PER_HOUR: int = int(os.getenv("IG_MAX_LIKES_PER_HOUR", "40"))
+IG_MAX_COMMENTS_PER_HOUR: int = int(os.getenv("IG_MAX_COMMENTS_PER_HOUR", "10"))
+
+# Skip private accounts when engaging
+IG_SKIP_PRIVATE: bool = os.getenv("IG_SKIP_PRIVATE", "1") == "1"
+
+# Comma-separated username prefixes to allow (empty means allow all)
+IG_ALLOWED_USERNAME_PREFIXES: str = os.getenv("IG_ALLOWED_USERNAME_PREFIXES", "")
+
+
+# =============================================================================
 # Validation
 # =============================================================================
 
@@ -144,6 +174,14 @@ def print_config_status():
     print(f"Retry delay: {IG_RETRY_DELAY}s")
     print(f"Log level: {IG_LOG_LEVEL}")
     print(f"Debug screenshots: {'yes' if IG_DEBUG_SCREENSHOTS else 'no'}")
+    print(f"Search max results: {IG_SEARCH_MAX_RESULTS}")
+    print(f"Search max scrolls: {IG_SEARCH_MAX_SCROLLS}")
+    print(f"Max searches per hour: {IG_MAX_SEARCHES_PER_HOUR}")
+    print(f"Max follows per hour: {IG_MAX_FOLLOWS_PER_HOUR}")
+    print(f"Max likes per hour: {IG_MAX_LIKES_PER_HOUR}")
+    print(f"Max comments per hour: {IG_MAX_COMMENTS_PER_HOUR}")
+    print(f"Skip private: {'yes' if IG_SKIP_PRIVATE else 'no'}")
+    print(f"Allowed username prefixes: {IG_ALLOWED_USERNAME_PREFIXES or 'none'}")
     
     validation = validate_config()
     if validation["valid"]:

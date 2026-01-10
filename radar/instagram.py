@@ -1,9 +1,27 @@
 import os
+import re
 import time
 import datetime
+from urllib.parse import quote
 from playwright.sync_api import Page, BrowserContext, ElementHandle
 from radar.browser import BrowserManager
-from radar.ig_config import IG_DEBUG_DIR, IG_DEBUG_SCREENSHOTS, IG_LOGIN_TIMEOUT, IG_UPLOAD_TIMEOUT
+from radar.human_behavior import human_delay, typing_delay, thinking_pause_chance
+from radar.ig_config import (
+    IG_DEBUG_DIR,
+    IG_DEBUG_SCREENSHOTS,
+    IG_LOGIN_TIMEOUT,
+    IG_UPLOAD_TIMEOUT,
+    IG_MIN_ACTION_DELAY,
+    IG_MAX_ACTION_DELAY,
+    IG_SEARCH_MAX_RESULTS,
+    IG_SEARCH_MAX_SCROLLS,
+    IG_MAX_SEARCHES_PER_HOUR,
+    IG_MAX_FOLLOWS_PER_HOUR,
+    IG_MAX_LIKES_PER_HOUR,
+    IG_MAX_COMMENTS_PER_HOUR,
+    IG_SKIP_PRIVATE,
+    IG_ALLOWED_USERNAME_PREFIXES,
+)
 from radar.selectors import SelectorStrategy, INSTAGRAM_SELECTORS
 from radar.session_manager import load_playwright_cookies, get_session_path
 
@@ -16,8 +34,59 @@ class InstagramAutomator:
         self.last_error: str = None
         self.debug = IG_DEBUG_SCREENSHOTS
         self.debug_dir = IG_DEBUG_DIR
+        self.action_counts = {}
+        self.action_window_start = time.time()
         if self.debug:
             os.makedirs(self.debug_dir, exist_ok=True)
+
+    def _launch_context(self, headless: bool):
+        self.context = self.manager.launch_persistent_context(
+            self.user_data_dir,
+            headless=headless,
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
+            timezone_id="America/New_York",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+        )
+
+        cookies_path = get_session_path("instagram", "cookies.json")
+        if not os.path.exists(cookies_path):
+            cookies_path = os.path.join(self.user_data_dir, "cookies.json")
+        load_playwright_cookies(self.context, path=cookies_path)
+
+        def abort_and_log(route):
+            if self.debug:
+                print(f"[DEBUG] Aborted request: {route.request.url}")
+            route.abort()
+
+        self.context.route("**/facebook.com/help/cancelcontracts**", abort_and_log)
+        self.context.route("**/help/cancelcontracts?source=instagram.com**", abort_and_log)
+        self.context.route("**/help.instagram.com/**", abort_and_log)
+        self.context.route("**/transparency.fb.com/**", abort_and_log)
+        self.context.on("page", self._handle_new_page)
+
+    def _ensure_page(self):
+        # Simplified check to avoid AttributeError on is_closed
+        if not self.context:
+            self._launch_context(headless=False)
+        
+        # Verify context is alive by accessing pages property
+        try:
+            _ = self.context.pages
+        except Exception:
+            self.context = None
+            self._launch_context(headless=False)
+
+        # Handle page
+        if self.page:
+            try:
+                if self.page.is_closed():
+                    self.page = None
+            except Exception:
+                self.page = None
+                
+        if not self.page:
+            self.page = self.manager.new_page(self.context, stealth=True)
 
     def _debug_log(self, message: str):
         if self.debug:
@@ -36,6 +105,366 @@ class InstagramAutomator:
                 except Exception as e:
                     print(f"[DEBUG] Failed to save screenshot: {e}")
                     pass
+
+    def _rate_limit(self, action: str, max_per_hour: int) -> bool:
+        if max_per_hour <= 0:
+            return True
+
+        now = time.time()
+        if now - self.action_window_start >= 3600:
+            self.action_window_start = now
+            self.action_counts = {}
+
+        count = self.action_counts.get(action, 0)
+        if count >= max_per_hour:
+            self.last_error = f"Rate limit reached for {action} ({max_per_hour}/hour)"
+            return False
+
+        self.action_counts[action] = count + 1
+        return True
+
+    def _sleep_action(self):
+        delay_ms = int(human_delay(IG_MIN_ACTION_DELAY, IG_MAX_ACTION_DELAY))
+        if self.page:
+            self.page.wait_for_timeout(delay_ms)
+
+    def _parse_prefixes(self, prefixes: list[str] | None) -> list[str]:
+        if prefixes is not None:
+            raw = prefixes
+        else:
+            raw = [p for p in IG_ALLOWED_USERNAME_PREFIXES.split(",") if p.strip()]
+
+        return [p.strip().lower() for p in raw if p.strip()]
+
+    def _matches_prefix(self, username: str, prefixes: list[str]) -> bool:
+        if not prefixes:
+            return True
+        uname = username.lower()
+        return any(uname.startswith(p) for p in prefixes)
+
+    def _extract_username(self, href: str) -> str | None:
+        if not href:
+            return None
+
+        match = re.match(r"^/([A-Za-z0-9._]+)/$", href)
+        if not match:
+            return None
+
+        username = match.group(1)
+        reserved = {
+            "explore", "reels", "reel", "p", "accounts", "tags", "direct",
+            "about", "help", "privacy", "terms", "challenge", "graphql",
+        }
+        if username.lower() in reserved:
+            return None
+
+        return username
+
+    def _collect_search_results(self, container_selector: str) -> list[dict]:
+        data = self.page.evaluate(
+            """
+            (selector) => {
+                const root = document.querySelector(selector);
+                if (!root) return [];
+                const anchors = Array.from(root.querySelectorAll('a[href]'));
+                return anchors.map(a => ({
+                    href: a.getAttribute('href'),
+                    text: (a.innerText || '').trim()
+                }));
+            }
+            """,
+            container_selector,
+        )
+
+        results = []
+        seen = set()
+        for item in data:
+            href = item.get("href") or ""
+            username = self._extract_username(href)
+            if not username or username in seen:
+                continue
+
+            display_name = None
+            text = item.get("text") or ""
+            if text:
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if lines:
+                    if lines[0].lower() != username.lower():
+                        display_name = lines[0]
+                    elif len(lines) > 1:
+                        display_name = lines[1]
+
+            results.append(
+                {
+                    "username": username,
+                    "display_name": display_name,
+                    "profile_url": f"https://www.instagram.com/{username}/",
+                }
+            )
+            seen.add(username)
+
+        return results
+
+    def _open_search_ui(self, strategy: SelectorStrategy) -> bool:
+        if strategy.click_first_visible(INSTAGRAM_SELECTORS["search_button"]):
+            self._sleep_action()
+            return True
+        return False
+
+    def _open_profile(self, username: str) -> bool:
+        if not username:
+            self.last_error = "Username is empty."
+            return False
+
+        self._ensure_page()
+        if not self.page:
+            self.last_error = "Page not initialized."
+            return False
+
+        profile_url = f"https://www.instagram.com/{username}/"
+        self.page.goto(profile_url, wait_until="domcontentloaded")
+        self.page.wait_for_timeout(1500)
+        return True
+
+    def _is_private_account(self, strategy: SelectorStrategy) -> bool:
+        return strategy.is_any_visible(INSTAGRAM_SELECTORS["private_account"])
+
+    def _open_first_post(self, strategy: SelectorStrategy) -> bool:
+        post_link = strategy.find_any_visible(INSTAGRAM_SELECTORS["profile_post_link"])
+        if not post_link:
+            self.last_error = "No posts found on profile."
+            return False
+
+        try:
+            post_link.click()
+            self.page.wait_for_timeout(1500)
+            return True
+        except Exception as e:
+            self.last_error = f"Failed to open post: {e}"
+            return False
+
+    def search_accounts(
+        self,
+        query: str,
+        max_results: int = IG_SEARCH_MAX_RESULTS,
+        max_scrolls: int = IG_SEARCH_MAX_SCROLLS,
+    ) -> list[dict]:
+        """
+        Search Instagram accounts by keyword using the UI.
+
+        Returns a list of dicts: {username, display_name, profile_url}.
+        """
+        self.last_error = None
+        if not query or not query.strip():
+            self.last_error = "Search query is empty."
+            return []
+
+        if not self._rate_limit("search", IG_MAX_SEARCHES_PER_HOUR):
+            return []
+
+        self._ensure_page()
+        if not self.page:
+            self.last_error = "Page not initialized."
+            return []
+
+        if "instagram.com" not in self.page.url:
+            self.page.goto("https://www.instagram.com/", wait_until="domcontentloaded")
+
+        self.handle_popups()
+        strategy = SelectorStrategy(self.page)
+
+        input_el = None
+        if self._open_search_ui(strategy):
+            input_el = strategy.find(INSTAGRAM_SELECTORS["search_input"], timeout=5000)
+
+        if not input_el:
+            search_url = f"https://www.instagram.com/explore/search/keyword/?q={quote(query)}"
+            self.page.goto(search_url, wait_until="domcontentloaded")
+            self.page.wait_for_timeout(1500)
+            input_el = strategy.find(INSTAGRAM_SELECTORS["search_input"], timeout=5000)
+
+        if not input_el:
+            self.last_error = "Search input not found."
+            return []
+
+        input_el.click()
+        self.page.wait_for_timeout(150)
+        self.page.keyboard.press("Control+A")
+        self.page.keyboard.press("Backspace")
+
+        for char in query.strip():
+            self.page.keyboard.type(char)
+            self.page.wait_for_timeout(int(typing_delay()))
+            if thinking_pause_chance():
+                self.page.wait_for_timeout(300)
+
+        self.page.wait_for_timeout(800)
+
+        container_selector = None
+        for selector in INSTAGRAM_SELECTORS["search_results_container"]:
+            try:
+                if self.page.is_visible(selector):
+                    container_selector = selector
+                    break
+            except Exception:
+                continue
+
+        if not container_selector:
+            container_selector = "body"
+
+        results = []
+        seen = set()
+        for _ in range(max_scrolls + 1):
+            chunk = self._collect_search_results(container_selector)
+            for item in chunk:
+                if len(results) >= max_results:
+                    break
+                username = item["username"]
+                if username not in seen:
+                    results.append(item)
+                    seen.add(username)
+
+            if len(results) >= max_results:
+                break
+
+            try:
+                self.page.evaluate(
+                    "(selector) => { const el = document.querySelector(selector); if (el) el.scrollBy(0, el.scrollHeight); }",
+                    container_selector,
+                )
+            except Exception:
+                self.page.mouse.wheel(0, 800)
+
+            self._sleep_action()
+
+        return results[:max_results]
+
+    def follow_user(
+        self,
+        username: str,
+        prefixes: list[str] | None = None,
+        skip_private: bool = IG_SKIP_PRIVATE,
+    ) -> bool:
+        self.last_error = None
+        allowed = self._parse_prefixes(prefixes)
+        if not self._matches_prefix(username, allowed):
+            self.last_error = "Username does not match allowed prefixes."
+            return False
+
+        if not self._open_profile(username):
+            return False
+
+        self.handle_popups()
+        strategy = SelectorStrategy(self.page)
+
+        if skip_private and self._is_private_account(strategy):
+            self.last_error = "Skipped private account."
+            return False
+
+        if strategy.is_any_visible(INSTAGRAM_SELECTORS["following_button"]):
+            return True
+
+        if not self._rate_limit("follow", IG_MAX_FOLLOWS_PER_HOUR):
+            return False
+
+        if strategy.click_first_visible(INSTAGRAM_SELECTORS["follow_button"]):
+            self._sleep_action()
+            return True
+
+        self.last_error = "Follow button not found."
+        return False
+
+    def like_recent_post(
+        self,
+        username: str,
+        prefixes: list[str] | None = None,
+        skip_private: bool = IG_SKIP_PRIVATE,
+    ) -> bool:
+        self.last_error = None
+        allowed = self._parse_prefixes(prefixes)
+        if not self._matches_prefix(username, allowed):
+            self.last_error = "Username does not match allowed prefixes."
+            return False
+
+        if not self._open_profile(username):
+            return False
+
+        self.handle_popups()
+        strategy = SelectorStrategy(self.page)
+
+        if skip_private and self._is_private_account(strategy):
+            self.last_error = "Skipped private account."
+            return False
+
+        if not self._open_first_post(strategy):
+            return False
+
+        if strategy.is_any_visible(INSTAGRAM_SELECTORS["liked_button"]):
+            return True
+
+        if not self._rate_limit("like", IG_MAX_LIKES_PER_HOUR):
+            return False
+
+        if strategy.click_first_visible(INSTAGRAM_SELECTORS["like_button"]):
+            self._sleep_action()
+            return True
+
+        self.last_error = "Like button not found."
+        return False
+
+    def comment_recent_post(
+        self,
+        username: str,
+        comment_text: str,
+        prefixes: list[str] | None = None,
+        skip_private: bool = IG_SKIP_PRIVATE,
+    ) -> bool:
+        self.last_error = None
+        allowed = self._parse_prefixes(prefixes)
+        if not self._matches_prefix(username, allowed):
+            self.last_error = "Username does not match allowed prefixes."
+            return False
+
+        if not comment_text or not comment_text.strip():
+            self.last_error = "Comment text is empty."
+            return False
+
+        if not self._open_profile(username):
+            return False
+
+        self.handle_popups()
+        strategy = SelectorStrategy(self.page)
+
+        if skip_private and self._is_private_account(strategy):
+            self.last_error = "Skipped private account."
+            return False
+
+        if not self._open_first_post(strategy):
+            return False
+
+        comment_box = strategy.find(INSTAGRAM_SELECTORS["comment_box"], timeout=5000)
+        if not comment_box:
+            self.last_error = "Comment box not found."
+            return False
+
+        if not self._rate_limit("comment", IG_MAX_COMMENTS_PER_HOUR):
+            return False
+
+        comment_box.click()
+        self.page.wait_for_timeout(150)
+        for char in comment_text.strip():
+            self.page.keyboard.type(char)
+            self.page.wait_for_timeout(int(typing_delay()))
+            if thinking_pause_chance():
+                self.page.wait_for_timeout(300)
+
+        if strategy.click_first_visible(INSTAGRAM_SELECTORS["comment_post_button"]):
+            self._sleep_action()
+            return True
+
+        self.page.keyboard.press("Enter")
+        self._sleep_action()
+        return True
 
     def _handle_new_page(self, page: Page):
         """Handler for new pages/tabs opened by the browser."""
@@ -89,38 +518,7 @@ class InstagramAutomator:
         """
         self.last_error = None
         if not self.context:
-            # For Video Uploads, Desktop view is often more reliable/stable
-            # We strictly enforce locale and User Agent to ensure consistent "Device" appearance
-            self.context = self.manager.launch_persistent_context(
-                self.user_data_dir,
-                headless=headless,
-                viewport={"width": 1280, "height": 800},
-                locale="en-US",
-                timezone_id="America/New_York", # Default to US/NY to match en-US or override if needed
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-            )
-            
-            # Determine cookie path: Prefer standardized session path, fallback to user_data_dir
-            cookies_path = get_session_path("instagram", "cookies.json")
-            if not os.path.exists(cookies_path):
-                # Fallback to legacy location inside user_data_dir
-                cookies_path = os.path.join(self.user_data_dir, "cookies.json")
-                
-            load_playwright_cookies(self.context, path=cookies_path)
-
-            # 1. Block the popup at the network layer (Kill it before it's created)
-            def abort_and_log(route):
-                if self.debug:
-                    print(f"[DEBUG] Aborted request: {route.request.url}")
-                route.abort()
-
-            self.context.route("**/facebook.com/help/cancelcontracts**", abort_and_log)
-            self.context.route("**/help/cancelcontracts?source=instagram.com**", abort_and_log)
-            self.context.route("**/help.instagram.com/**", abort_and_log)
-            self.context.route("**/transparency.fb.com/**", abort_and_log)
-
-            # Auto-close new tabs/windows that might be popups or redirects
-            self.context.on("page", self._handle_new_page)
+            self._launch_context(headless=headless)
         
         self.page = self.manager.new_page(self.context, stealth=True)
         
@@ -298,103 +696,185 @@ class InstagramAutomator:
 
         return False
 
-    def _upload_media(self, file_path: str, retry: bool = True):
+    def _find_clickable(self, selectors: list[str]) -> ElementHandle | None:
+        """Helper to find the first visible, clickable element from a list."""
+        for s in selectors:
+            try:
+                 el = self.page.locator(s).first
+                 if el.is_visible():
+                     return el
+            except:
+                continue
+        return None
+
+    def _upload_media(self, file_path: str, caption: str):
         """
-        Robustly handles the media upload dialog on Instagram Desktop.
+        State-driven upload handler.
+        Navigates: File Selection -> Next/Filter -> Next/Edit -> Share -> Success
         """
+        self._ensure_page()
         if self.page:
             self.page.bring_to_front()
-
-        # Small settle to let Instagram load the dialog
-        self.page.wait_for_timeout(1000)
         
         abs_path = os.path.abspath(file_path)
         
-        # Define selectors upfront
+        # 1. File Selection Phase
+        print(f"[TRACE] Attempting file selection for {abs_path}")
+        try:
+            # Try input directly first
+            file_input = self.page.locator('input[type="file"]').first
+            if file_input:
+                file_input.set_input_files(abs_path)
+            else:
+                self.page.set_input_files('input[type="file"]', abs_path, timeout=5000)
+            print("[TRACE] File selection called.")
+            self.page.wait_for_timeout(2000)
+        except Exception as e:
+            print(f"[TRACE] File selection error (may be handled by button click): {e}")
+
+        # If file selection didn't trigger, try clicking "Select from computer"
+        select_btns = [
+            'button:has-text("Select from computer")',
+            'button:has-text("Von Computer auswählen")',
+            '[role="button"]:has-text("Select from computer")',
+            'div[role="button"] >> text=/Select.*computer/i'
+        ]
+        
+        # Check if we need to click "Select" to open file dialog (fallback)
+        btn = self._find_clickable(select_btns)
+        if btn:
+             print("[TRACE] Found Select button, clicking...")
+             try:
+                 with self.page.expect_file_chooser(timeout=5000) as fc:
+                     btn.click(force=True)
+                 fc.value.set_files(abs_path)
+                 print("[TRACE] File chooser fallback success")
+                 self.page.wait_for_timeout(2000)
+             except Exception as e:
+                 print(f"[TRACE] File chooser fallback failed: {e}")
+
+        # 2. Infinite State Loop (Next -> Share)
+        # We loop until we see "Success" or timeout
+        start_time = time.time()
+        max_duration = 120 # 2 minutes total for upload flow
+        caption_filled = False
+        
         next_selectors = [
+            'button:has-text("Next")',
+            'button:has-text("Weiter")',
             'div._ac7d div[role="button"]:has-text("Next")',
-            'div._ac7d div[role="button"]:has-text("Weiter")',
-            'div._ac7d [role="button"]',
             'div[role="button"]:has-text("Next")',
             'div[role="button"]:has-text("Weiter")',
-            'div[role="button"] >> text=/Next|Weiter/',
-        ] + INSTAGRAM_SELECTORS["next_button"]
+        ]
+        
+        share_selectors = [
+            'button:has-text("Share")',
+            'button:has-text("Teilen")',
+            'div[role="button"]:has-text("Share")',
+            'div[role="button"]:has-text("Teilen")',
+        ]
+        
+        # Expanders for accessibility/advanced settings that might block visibility
+        expander_selectors = [
+             'button:has-text("Accessibility")',
+             'div[role="button"]:has-text("Accessibility")',
+             'div[role="button"]:has-text("Barrierefreiheit")',
+             'div[role="button"]:has-text("Advanced settings")',
+             'div[role="button"]:has-text("Erweiterte Einstellungen")',
+        ]
+        
+        caption_selectors = [
+            'div[aria-label="Write a caption..."]',
+            'div[aria-label="Verfasse eine Bildunterschrift ..."]',
+            'div[role="textbox"][contenteditable="true"]',
+            'textarea[aria-label="Write a caption..."]',
+             'textarea[aria-label*="caption"]'
+        ]
 
-        try:
-            self._debug_log("Attempting page-level set_input_files")
-            self.page.set_input_files('input[type="file"]', abs_path, timeout=10000)
-            self._debug_log("Page-level set_input_files call completed")
-            self.page.wait_for_timeout(5000) 
-            
-            ui_changed = False
-            for s in next_selectors:
-                if self.page.locator(s).first.is_visible():
-                    ui_changed = True
-                    self._debug_log(f"UI change detected! Next button visible via {s}")
-                    break
-            
-            if not ui_changed:
-                self._debug_log("Page-level set didn't trigger UI, trying targeted button approach")
-                select_btn = self.page.locator('button:has-text("Select from computer"), button:has-text("Von Computer auswählen"), [role="button"]:has-text("Select from computer")').first
-                if select_btn.is_visible():
-                    self._debug_log("Clicking 'Select from computer' button")
-                    with self.page.expect_file_chooser() as fc:
-                        select_btn.click()
-                    file_chooser = fc.value
-                    file_chooser.set_files(abs_path)
-                    self.page.wait_for_timeout(5000)
-        except Exception as e:
-            self._debug_log(f"File selection attempt failed: {e}")
+        success_indicators = [
+             'text="Post shared"', 'text="Beitrag geteilt"',
+             'text="Your post has been shared"',
+             'img[alt="Animated checkmark"]',
+             'svg[aria-label="Success"]'
+        ]
 
-        if self.page:
-            self.page.bring_to_front()
+        self._debug_log("Starting State-Driven Upload Loop")
+        
+        while time.time() - start_time < max_duration:
+            # A. Check Success
+            if self._find_clickable(success_indicators) or self.page.is_visible('text="Reel shared"'):
+                self._debug_log("Upload Success Detected!")
+                return True
 
-        found_next = False
-        start_time = time.time()
-        self._debug_log("Starting Next button search loop")
-        while time.time() - start_time < 45:
-            for selector in next_selectors:
-                btn = self.page.locator(selector).first
-                try:
-                    if btn.is_visible():
-                        self._debug_log(f"Found visible Next button: {selector}")
+            # B. Check Share Button (Final Step)
+            share_btn = self._find_clickable(share_selectors)
+            if share_btn:
+                # If we see Share, we are on the final screen. Fill caption if needed.
+                if not caption_filled and caption:
+                    self._debug_log("On Share screen, filling caption...")
+                    cb = self._find_clickable(caption_selectors)
+                    if cb:
                         try:
-                            btn.click(timeout=3000)
+                            cb.click()
+                            cb.fill(caption)
+                            caption_filled = True
+                            self.page.wait_for_timeout(500)
                         except:
-                            btn.evaluate("el => el.click()")
-                        self.page.wait_for_timeout(2000)
-                        found_next = True
-                        return 
-                except:
-                    pass
-            
-            if int(time.time() - start_time) % 10 == 0:
+                            pass
+                
+                self._debug_log("Clicking Share button...")
                 try:
-                    all_btns = self.page.locator('[role="button"]').all_inner_texts()
-                    self._debug_log(f"Visible buttons on page: {all_btns[:10]}...")
-                except:
-                    pass
-                    
+                    share_btn.click()
+                    self.page.wait_for_timeout(3000) # Wait for network
+                    continue # Loop back to check success
+                except Exception as e:
+                    self._debug_log(f"Share click failed: {e}")
+
+            # C. Check Next Buttons (Intermediate Steps)
+            # Only click next if Share is NOT visible (handled above)
+            next_btn = self._find_clickable(next_selectors)
+            if next_btn:
+                 self._debug_log("Found Next button, advancing...")
+                 try:
+                     next_btn.click()
+                     self.page.wait_for_timeout(1000)
+                     continue
+                 except:
+                     pass
+
+            # D. Handle Blocking Expanders (Optional)
+            # Sometimes accessibility accordion is expanded and pushes usage off? 
+            # Usually not an issue if using specific selectors, but good to be aware.
+            
+            # E. Check for "Success" close button (if missed main text)
+            close_btn = self._find_clickable(['button:has-text("Close")', 'button:has-text("Schließen")'])
+            if close_btn and (self.page.is_visible('text="shared"') or self.page.is_visible('text="geteilt"')):
+                 self._debug_log("Found Close button on success text.")
+                 return True
+
+            # Periodic Trace (every 5 seconds)
+            if time.time() - start_time > 5 and int(time.time() - start_time) % 5 == 0:
+                 try:
+                     bts = self.page.locator('button, [role="button"]').all_inner_texts()
+                     print(f"[TRACE] Visible buttons: {bts}")
+                     self._debug_log(f"Stuck? Visible buttons: {bts}")
+                     
+                     timestamp = datetime.datetime.now().strftime("%H%M%S")
+                     with open(os.path.join(self.debug_dir, f"debug_ig_{timestamp}_stuck_dump.html"), "w", encoding="utf-8") as f:
+                         f.write(self.page.content())
+                 except: pass
+
             self.page.wait_for_timeout(1000)
-
-        if not found_next:
-            try:
-                timestamp = datetime.datetime.now().strftime("%H%M%S")
-                html_filename = os.path.join(self.debug_dir, f"debug_ig_{timestamp}_full_page_dump.html")
-                with open(html_filename, "w", encoding="utf-8") as f:
-                    f.write(self.page.content())
-                self._debug_log(f"Saved full page HTML dump: {html_filename}")
-            except:
-                pass
-
-            self._debug_log("IG_UPLOAD_FAIL: Next button not found after 45s")
-            raise Exception("Next button not found")
+            
+        self.last_error = "Upload timed out (State Loop exhausted)"
+        return False
 
     def upload_video(self, file_path: str, caption: str = "", timeout: int = IG_UPLOAD_TIMEOUT) -> bool:
         """
-        Uploads a video (Reel) to Instagram via Desktop UI.
+        Uploads a video (Reel) to Instagram or Photo.
         """
         self.last_error = None
+        self._ensure_page()
         if not self.page:
             self.last_error = "Page not initialized."
             return False
@@ -407,158 +887,16 @@ class InstagramAutomator:
             
             self.handle_popups()
 
-            self._debug_log("Clicking Create")
-            if not self._click_create_button(strategy, timeout=60000):
-                self._debug_log("IG_UPLOAD_FAIL: Could not find 'Create' button.")
-                self.last_error = "Could not find 'Create' button."
-                return False
-
-            self._debug_log("Handling file input")
-            try:
-                self._upload_media(file_path)
-            except Exception as e:
-                self._debug_log(f"IG_UPLOAD_FAIL: File selection failed: {e}")
-                self.last_error = f"File selection failed: {e}"
-                return False
-
-            self._debug_log("Waiting for Next button")
+            self._debug_log("Opening create flow")
+            self.page.goto("https://www.instagram.com/create/select/", wait_until="domcontentloaded")
+            self.page.wait_for_timeout(2000)
             
-            next_selectors = [
-                'div._ac7d div[role="button"]:has-text("Next")',
-                'div._ac7d div[role="button"]:has-text("Weiter")',
-                'div._ac7d [role="button"]',
-                'div[role="button"]:has-text("Next")',
-                'div[role="button"]:has-text("Weiter")',
-                'div[role="button"] >> text=/Next|Weiter/',
-            ] + INSTAGRAM_SELECTORS["next_button"]
-            
-            found_next = False
-            next_btn = None
-            start_wait = time.time()
-            while time.time() - start_wait < 30:
-                for selector in next_selectors:
-                    try:
-                        btn = self.page.locator(selector).first
-                        if btn.is_visible():
-                            next_btn = btn
-                            found_next = True
-                            break
-                    except:
-                        continue
-                if found_next:
-                    break
-                self.page.wait_for_timeout(500)
-
-            if not found_next:
-                self._debug_log("IG_UPLOAD_FAIL: Next button did not appear after upload.")
-                self.last_error = "Next button did not appear after upload."
-                return False
-
-            next_btn.click()
-            self.page.wait_for_timeout(1000)
-
-            self._debug_log("Edit screen")
-            
-            share_selectors = [
-                'div._ac7d [role="button"]',
-                'div[role="button"]:has-text("Share")',
-                'div[role="button"]:has-text("Teilen")',
-                'div[role="button"] >> text=/Share|Teilen/',
-            ] + INSTAGRAM_SELECTORS["share_button"]
-
-            caption_selectors = INSTAGRAM_SELECTORS["caption_area"] + [
-                'div[aria-label*="Write a caption"]',
-                'div[role="textbox"]',
-            ]
-
-            transitioned_to_caption = False
-            for attempt in range(3):
-                found_share_check = False
-                for s in share_selectors:
-                    if self.page.locator(s).first.is_visible():
-                         txt = self.page.locator(s).first.inner_text()
-                         if "Share" in txt or "Teilen" in txt:
-                            found_share_check = True
-                            break
-                
-                if found_share_check:
-                    self._debug_log("Share button visible, assuming Caption screen.")
-                    transitioned_to_caption = True
-                    break
-
-                found_next_edit = False
-                for selector in next_selectors:
-                    btn = self.page.locator(selector).first
-                    if btn.is_visible():
-                        if "Share" not in btn.inner_text() and "Teilen" not in btn.inner_text():
-                             self._debug_log(f"Found Next button (Edit screen): {selector}")
-                             btn.click()
-                             found_next_edit = True
-                             self.page.wait_for_timeout(2000) 
-                             break
-                
-                if self.page.locator(caption_selectors[0]).first.is_visible():
-                    self._debug_log("Caption box found.")
-                    transitioned_to_caption = True
-                    break
-                
-                self.page.wait_for_timeout(1000)
-
-            self._debug_log("Caption screen")
-            caption_box = strategy.find(caption_selectors, timeout=5000)
-            if caption_box:
-                caption_box.fill(caption)
-                self.page.wait_for_timeout(500)
-            elif not transitioned_to_caption:
-                 self._debug_log("IG_UPLOAD_FAIL: Could not reach Caption screen.")
-                 return False
-            
-            self._debug_log("Clicking Share")
-            found_share = False
-            for selector in share_selectors:
-                btn = self.page.locator(selector).first
-                if btn.is_visible():
-                    self._debug_log(f"Found visible Share button: {selector}")
-                    btn.click()
-                    found_share = True
-                    break
-
-            if not found_share:
-                self._debug_log("IG_UPLOAD_FAIL: Could not find 'Share' button.")
-                self.last_error = "Could not find 'Share' button."
-                return False
-
-            self._debug_log("Waiting for success")
-            success_selectors = INSTAGRAM_SELECTORS["success_indicator"]
-            
-            if strategy.find(success_selectors, timeout=60000):
-                self._debug_log("Upload Success!")
-                return True
-            else:
-                if not self.page.is_visible('text="Sharing"'):
-                    self._debug_log("Sharing indicator gone, assuming success")
-                    return True
-                
-            self._debug_log("IG_UPLOAD_FAIL: Success message not found.")
-            self.last_error = "Success message not found."
-            return False
+            # Use state machine for the rest
+            return self._upload_media(file_path, caption)
 
         except Exception as e:
-            self._debug_log(f"IG_UPLOAD_FAIL: Exception: {e}")
             self.last_error = str(e)
             return False
 
     def upload_photo(self, file_path: str, caption: str = "", timeout: int = 45000) -> bool:
-        """Original photo upload (keeping for compat)."""
-        if self.page and type(self.page).__module__ == "unittest.mock":
-            try:
-                with self.page.expect_file_chooser() as fc:
-                    self.page.click('input[type="file"]')
-                file_chooser = fc.value
-                file_chooser.set_files(file_path)
-                return True
-            except Exception as e:
-                self.last_error = str(e)
-                return False
-
-        return self.upload_video(file_path, caption, timeout)
+         return self.upload_video(file_path, caption, timeout)

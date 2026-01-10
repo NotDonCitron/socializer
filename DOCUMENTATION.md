@@ -12,12 +12,13 @@ A Python-based core that uses **Playwright** to drive browser sessions.
 - **Modular Drivers**: Dedicated modules for TikTok (`radar/tiktok.py`) and Instagram (`radar/instagram.py`).
 - **Session Manager**: Persists browser cookies and state in SQLite and local directories to avoid repeated logins.
 
-### 2. Admin Panel (`admin-panel-temp/`)
+### 2. Admin Panel (`admin-panel/`)
 A modern web dashboard built with **React (Vite)** and **Express**.
 - **Dashboard**: Real-time analytics and system health monitoring.
 - **Account Groups (Silos)**: Group accounts by proxy, email, or niche to isolate footprints.
 - **Jobs Pipeline**: Schedule and monitor automated tasks with a live browser stream and logs.
 - **Content Studio**: Tools for gathering sources, generating scripts, and reviewing AI-rendered videos.
+- **Instagram Engagement**: Run search + prefix-filtered follow/like/comment flows with guardrails.
 
 ### 3. API/Scheduler (`socializer-api/`)
 Minimal FastAPI service for scheduling and API utilities.
@@ -42,11 +43,18 @@ playwright install chromium
 
 ### 2. Setup the Admin Panel
 ```bash
-cd admin-panel-temp
+cd admin-panel
 npm install
 npm run dev
 ```
 The dashboard will be available at `http://localhost:5501`.
+
+### Windows PowerShell dev server
+```powershell
+cd admin-panel
+$env:NODE_ENV="development"
+npx tsx server/index.ts
+```
 
 ---
 
@@ -70,7 +78,7 @@ Socializer introduces the concept of **Silos**. Instead of managing accounts ind
 
 ## Communication Protocol
 
-The Admin Panel (`admin-panel-temp/server/routes.ts`) and the Python Backend communicate through standard I/O and WebSockets.
+The Admin Panel (`admin-panel/server/routes.ts`) and the Python Backend communicate through standard I/O and WebSockets.
 
 ### 1. Logs and Screenshots
 The Python scripts output information to `stdout`. The Admin Panel parses these lines:
@@ -79,7 +87,7 @@ The Python scripts output information to `stdout`. The Admin Panel parses these 
 - **Errors**: `stderr` is captured, prefixed with `[Python Error]`, and flagged as an error level in the database.
 
 ### 2. Process Control
-- **Starting**: The Admin Panel uses `child_process.spawn` to run `dashboard_runner.py` with specific arguments (`--job-id`, `--content`, `--platform`, etc.).
+- **Starting**: The Admin Panel uses `child_process.spawn` to run python runners with specific arguments or env vars.
 - **Exit Codes**:
   - `Code 0`: Job marked as `published`.
   - `Non-zero`: Job marked as `failed`.
@@ -92,12 +100,12 @@ The Python scripts output information to `stdout`. The Admin Panel parses these 
 Automation logic lives in `radar/`. To add a new platform:
 1. Create a new class in `radar/[platform].py`.
 2. Inherit from `BaseAutomator` (if available) or use the `BrowserManager`.
-3. Register the new script in `admin-panel-temp/server/routes.ts` within the `runPythonScript` helper.
+3. Register the new script in `admin-panel/server/routes.ts` within the `runPythonScript` helper.
 
 ### Database Schema
 The system uses **Drizzle ORM** with a SQLite/PostgreSQL backend.
-- Schema definition: `admin-panel-temp/shared/schema.ts`
-- To update the DB: `cd admin-panel-temp && npm run db:push`
+- Schema definition: `admin-panel/shared/schema.ts`
+- To update the DB: `cd admin-panel && npm run db:push`
 
 ---
 

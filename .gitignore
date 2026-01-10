@@ -29,3 +29,8 @@ temp_socializer_github/
 
 # Keep manual login screenshots if needed, but usually ignore
 # tiktok_sb_login.png
+
+# Local artifacts
+*.sqlite-wal
+*.sqlite-shm
+ig_session_worker/
